@@ -1,0 +1,53 @@
+@import "tailwindcss";
+
+:root {
+    --color-primary: #5a6c37;
+    --color-secondary: #d97706;
+    --color-danger: #dc2626;
+    --color-background-light: #f3f4f6;
+    --color-background-dark: #111827;
+    --color-surface-light: #ffffff;
+    --color-surface-dark: #1f2937;
+}
+
+/* ignore-linting-for-theme-block */
+/* stylelint-disable-next-line at-rule-no-unknown */
+@theme {
+    --color-primary: var(--color-primary);
+    --color-secondary: var(--color-secondary);
+    --color-danger: var(--color-danger);
+    --color-background-light: var(--color-background-light);
+    --color-background-dark: var(--color-background-dark);
+    --color-surface-light: var(--color-surface-light);
+    --color-surface-dark: var(--color-surface-dark);
+}
+
+/* Toast Customization */
+.Vue-Toastification__toast--success {
+    background-color: var(--color-primary) !important;
+    color: var(--color-surface-light) !important;
+}
+
+.Vue-Toastification__toast--default {
+    background-color: var(--color-primary) !important;
+    color: var(--color-surface-light) !important;
+}
+
+.Vue-Toastification__progress-bar {
+    background-color: rgba(255, 255, 255, 0.7) !important;
+}
+
+/* Specific Customer App Toast */
+.customer-toast {
+    border-radius: 50px !important;
+    padding: 8px 16px !important;
+    min-height: 48px !important;
+    width: auto !important;
+    min-width: 200px !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important;
+}
+.customer-toast .Vue-Toastification__toast-body {
+    padding: 0 !important;
+}
