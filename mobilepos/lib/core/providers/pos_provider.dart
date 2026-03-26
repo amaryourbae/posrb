@@ -289,7 +289,7 @@ class PosNotifier extends StateNotifier<PosState> {
 
   Future<void> fetchProducts() async {
     try {
-      final response = await dio.get('/admin/products');
+      final response = await dio.get('/admin/products?per_page=200');
       // Handle different response formats (List, Paginated Object, Standard Wrapper)
       List data = [];
       final resData = response.data;

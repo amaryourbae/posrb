@@ -39,7 +39,7 @@ class ProductController extends Controller
             });
         }
 
-        $perPage = $request->input('per_page', 10);
+        $perPage = $request->input('per_page', 200);
         $products = $query->paginate($perPage);
         return $this->successResponse($products);
     }

@@ -60,7 +60,7 @@ class MenuNotifier extends StateNotifier<MenuState> {
     state = state.copyWith(isLoading: true);
     try {
       final dio = ref.read(dioProvider);
-      var url = '/admin/products?per_page=50';
+      var url = '/admin/products?per_page=200';
 
       if (state.searchQuery.isNotEmpty) {
         url += '&search=${state.searchQuery}';
