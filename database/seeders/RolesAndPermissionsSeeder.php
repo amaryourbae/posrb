@@ -47,7 +47,6 @@ class RolesAndPermissionsSeeder extends Seeder
             'manage_users',
             'manage_products',
             'manage_inventory',
-            'pos_access',
             'process_transactions',
             'void_transactions',
             'view_reports',
@@ -58,6 +57,16 @@ class RolesAndPermissionsSeeder extends Seeder
             'pos_access',
             'process_transactions',
             'view_dashboard',
+            'manage_products',
+            'manage_inventory',
+        ]);
+
+        $roleReport = Role::firstOrCreate(['name' => 'report']);
+        $roleReport->givePermissionTo([
+            'view_dashboard',
+            'manage_products',
+            'manage_inventory',
+            'view_reports',
         ]);
 
         $roleKitchen = Role::firstOrCreate(['name' => 'kitchen']);
@@ -67,10 +76,10 @@ class RolesAndPermissionsSeeder extends Seeder
 
         // Create Default Super Admin
         $user = User::firstOrCreate(
-            ['email' => 'admin@pos.com'],
+            ['username' => 'superadmin'],
             [
                 'name' => 'Super Admin',
-                'username' => 'superadmin',
+                'email' => 'admin@pos.com',
                 'password' => Hash::make('password'),
                 'pin_code' => '123456',
                 'is_active' => true,

@@ -156,7 +156,21 @@ export const useMemberAuthStore = defineStore('memberAuth', () => {
         }
     }
 
-
+    async function loginWithProvider(providerInfo) {
+        loading.value = true;
+        try {
+            const response = await api.post('/public/member/social-login', providerInfo);
+            const resData = response.data?.data || response.data || {};
+            setSession(resData);
+            toast.success('Login successful!');
+            return resData;
+        } catch (err) {
+            toast.error(err.response?.data?.message || `Failed to login with ${providerInfo.provider}`);
+            throw err;
+        } finally {
+            loading.value = false;
+        }
+    }
 
 
     return {
@@ -172,6 +186,7 @@ export const useMemberAuthStore = defineStore('memberAuth', () => {
         verifyLogin,
         verifyOtp: verifyLogin, 
         verifyRegister,
+        loginWithProvider,
         logout,
         fetchMe,
         updateProfile

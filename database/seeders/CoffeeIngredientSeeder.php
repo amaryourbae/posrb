@@ -12,7 +12,7 @@ class CoffeeIngredientSeeder extends Seeder
      */
     public function run(): void
     {
-        $user = \App\Models\User::first() ?? \App\Models\User::factory()->create();
+        $user = \App\Models\User::first(['*']) ?? \App\Models\User::factory()->create();
 
         $ingredients = [
             // Coffee Beans
@@ -58,8 +58,17 @@ class CoffeeIngredientSeeder extends Seeder
         ];
 
         foreach ($ingredients as $ing) {
+            $unitName = ucfirst($ing['unit']);
+            if ($ing['unit'] === 'pcs') $unitName = 'Pieces';
+            if ($ing['unit'] === 'ml') $unitName = 'Milliliter';
+            
+            $unit = \App\Models\Unit::firstOrCreate(
+                ['abbreviation' => strtolower($ing['unit'])],
+                ['name' => $unitName]
+            );
+
             // Check if exists (including trashed)
-            $existing = Ingredient::withTrashed()->where('name', $ing['name'])->first();
+            $existing = Ingredient::withTrashed()->where(fn($q) => $q->where('name', '=', $ing['name'], 'and'))->first();
 
             $ingredient = $existing;
 
@@ -69,12 +78,12 @@ class CoffeeIngredientSeeder extends Seeder
                 }
                 // Update basic info
                 $existing->update([
-                    'unit' => $ing['unit'],
+                    'unit_id' => $unit->id,
                 ]);
             } else {
                 $ingredient = Ingredient::create([
                     'name' => $ing['name'],
-                    'unit' => $ing['unit'],
+                    'unit_id' => $unit->id,
                     'minimum_stock_alert' => 100,
                     'current_stock' => 0, // Will be updated by transaction
                     'cost_per_unit' => 0, // Will be updated by transaction

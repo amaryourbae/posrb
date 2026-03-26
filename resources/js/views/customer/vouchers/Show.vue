@@ -1,7 +1,8 @@
 <template>
-    <div class="h-screen w-full flex justify-center bg-gray-100 overflow-hidden font-sans relative">
+    <div class="fixed inset-0 w-full flex justify-center bg-gray-100 overflow-hidden font-sans">
+        <div class="w-full max-w-md h-full flex flex-col relative">
          <!-- Sticky Header -->
-        <div class="absolute top-0 left-0 right-0 mx-auto z-50 w-full max-w-md pointer-events-none transition-all duration-300">
+        <div class="absolute top-0 left-0 right-0 z-50 w-full pointer-events-none transition-all duration-300">
              <div class="absolute inset-0 bg-white shadow-sm transition-opacity duration-300" :style="{ opacity: headerOpacity }"></div>
              
              <div class="relative z-10 px-4 py-3 flex justify-between items-center">
@@ -19,7 +20,7 @@
         </div>
 
         <!-- Scroll Container -->
-        <div ref="scrollContainer" @scroll="handleScroll" class="w-full max-w-md h-full overflow-y-auto relative bg-gray-100 scroll-smooth shadow-2xl [&::-webkit-scrollbar]:hidden">
+        <div ref="scrollContainer" @scroll="handleScroll" class="flex-1 overflow-y-auto relative bg-gray-100 scroll-smooth shadow-2xl [&::-webkit-scrollbar]:hidden">
              <!-- Sticky Hero Image (Parallax) -->
             <div class="sticky top-0 w-full h-96 z-0 shrink-0 overflow-hidden">
                 <div v-if="voucher" class="absolute inset-0 bg-cover bg-center transition-transform duration-75 ease-out" 
@@ -100,7 +101,7 @@
         </div>
 
         <!-- Sticky Bottom -->
-        <div class="absolute bottom-0 left-0 right-0 mx-auto z-50 w-full max-w-md bg-white border-t border-gray-100 p-4 pb-8 shadow-[0_-5px_20px_rgba(0,0,0,0.05)]">
+        <div class="flex-none w-full z-50 bg-white border-t border-gray-100 p-4 pb-safe shadow-[0_-5px_20px_rgba(0,0,0,0.05)]">
             <button 
                 @click="useVoucher"
                 :disabled="voucher?.status !== 'active'"
@@ -109,6 +110,7 @@
             >
                 {{ voucher?.status === 'active' ? 'Gunakan Sekarang' : 'Tidak Tersedia' }}
             </button>
+        </div>
         </div>
     </div>
 </template>
@@ -162,13 +164,13 @@ const useVoucher = () => {
     
     // Redirect to Menu? Or Checkout?
     if (store.cart.length > 0) {
-        router.push('/app/menu'); 
+        router.push('/menu'); 
         toast.info("Voucher terpasang! Silakan pilih produknya.", {
             position: "top-left",
             toastClassName: "customer-toast"
         });
     } else {
-        router.push('/app/menu');
+        router.push('/menu');
         toast.info("Voucher terpasang! Silakan pilih produknya.", {
             position: "top-left",
             toastClassName: "customer-toast"

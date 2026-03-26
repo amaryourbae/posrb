@@ -8,7 +8,7 @@
                         <ChevronLeftIcon class="w-6 h-6" />
                     </button>
                      <h2 class="text-slate-800 text-lg font-bold leading-tight tracking-tight">RBC Talk+</h2>
-                     <button @click="$router.push('/app/vouchers')" class="flex w-10 h-10 shrink-0 items-center justify-center rounded-full hover:bg-gray-100 transition-colors text-gray-900 relative">
+                     <button @click="$router.push('/vouchers')" class="flex w-10 h-10 shrink-0 items-center justify-center rounded-full hover:bg-gray-100 transition-colors text-gray-900 relative">
                         <TicketIcon class="w-6 h-6" />
                     </button>
                 </div>
@@ -114,7 +114,7 @@ const pointsMissing = (reward) => {
 };
 
 const viewReward = (reward) => {
-    router.push(`/app/rewards/${reward.id}`);
+    router.push(`/rewards/${reward.id}`);
 };
 </script>
 

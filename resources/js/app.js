@@ -2,16 +2,17 @@ import { createApp } from 'vue';
 import { createPinia } from 'pinia';
 import router from './router';
 import App from './App.vue';
-import './bootstrap'; // Keep boostrap for Axios default headers if needed, though we made our own axios instance. 
-// Standard in Laravel is to keep bootstrap.js which loads lodash and sets axios headers.
-// However, our custom axios instance handles headers. We can keep it or remove it.
-// Let's keep it to be safe for now, or just remove it if we rely purely on our axios.js
-// Actually, standard bootstrap.js sets window.axios. Let's keep it.
+import vue3GoogleLogin from 'vue3-google-login';
+import './bootstrap';
 
 const app = createApp(App);
 
 app.use(createPinia());
 app.use(router);
+
+app.use(vue3GoogleLogin, {
+  clientId: import.meta.env.VITE_GOOGLE_CLIENT_ID || 'dummy-client-id'
+});
 
 // Toast Notification
 import Toast from "vue-toastification";

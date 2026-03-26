@@ -34,4 +34,9 @@ class Shift extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    public function cashMovements()
+    {
+        return $this->hasMany(CashMovement::class);
+    }
 }

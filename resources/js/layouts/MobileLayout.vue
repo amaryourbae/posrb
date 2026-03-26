@@ -1,5 +1,5 @@
 <template>
-    <div class="h-screen w-full font-sans text-slate-800 flex justify-center bg-gray-100 overflow-hidden">
+    <div class="fixed inset-0 w-full font-sans text-slate-800 flex justify-center bg-gray-100 overflow-hidden">
         <div class="w-full max-w-md bg-white h-full shadow-2xl relative flex flex-col">
             <!-- Header -->
             <header v-if="showHeader" class="sticky top-0 z-20 bg-white/95 backdrop-blur-sm border-b border-gray-100 px-5 py-3 flex items-center justify-between">
@@ -32,7 +32,7 @@
 
                     <!-- Avatar -->
                     <router-link 
-                        :to="member ? '/app/profile' : '/app/login'"
+                        :to="member ? '/profile' : '/member/login'"
                         class="relative w-9 h-9 rounded-full overflow-hidden border border-gray-100 shadow-sm active:scale-95 transition-transform"
                     >
                         <img 
@@ -52,25 +52,25 @@
             <slot name="header-custom"></slot>
 
             <!-- Main Content -->
-            <main class="flex-1 overflow-y-auto no-scrollbar" :class="{'pb-24': showFooter}">
+            <main class="flex-1 overflow-y-auto no-scrollbar" :class="{'pb-0': showFooter}">
                 <slot />
             </main>
 
             <!-- Bottom Navigation -->
-            <nav v-if="showFooter" class="sticky bottom-0 z-30 w-full border-t border-gray-100 bg-white pb-safe">
+            <nav v-if="showFooter" class="flex-none w-full z-30 border-t border-gray-100 bg-white pb-safe">
                 <div class="flex h-16 w-full items-center justify-around">
                     <router-link 
-                        to="/app" 
+                        to="/" 
                         class="flex flex-col items-center gap-1 p-2 transition-colors group"
                         active-class="text-primary"
-                        :class="$route.path === '/app' ? 'text-primary' : 'text-gray-400 hover:text-gray-600'"
+                        :class="$route.path === '/' ? 'text-primary' : 'text-gray-400 hover:text-gray-600'"
                     >
-                        <HomeIcon class="w-6 h-6 transition-all group-active:scale-90" :class="$route.path === '/app' ? 'fill-current' : ''" />
+                        <HomeIcon class="w-6 h-6 transition-all group-active:scale-90" :class="$route.path === '/' ? 'fill-current' : ''" />
                         <span class="text-[10px] font-bold">Home</span>
                     </router-link>
                     
                     <router-link 
-                        to="/app/order" 
+                        to="/order" 
                         class="flex flex-col items-center gap-1 p-2 transition-colors text-gray-400 hover:text-gray-600 group"
                         active-class="text-primary"
                     >
@@ -79,7 +79,7 @@
                     </router-link>
 
                     <router-link 
-                        to="/app/promo" 
+                        to="/promo" 
                         class="flex flex-col items-center gap-1 p-2 transition-colors text-gray-400 hover:text-gray-600 group"
                         active-class="text-primary"
                     >
@@ -88,11 +88,11 @@
                     </router-link>
 
                      <router-link 
-                        :to="member ? '/app/profile' : '/app/login'"
+                        :to="member ? '/profile' : '/member/login'"
                         class="flex flex-col items-center gap-1 p-2 transition-colors text-gray-400 hover:text-gray-600 group"
                         active-class="text-primary"
                     >
-                        <UserIcon class="w-6 h-6 transition-all group-active:scale-90" :class="$route.path.startsWith('/app/profile') ? 'fill-current' : ''" />
+                        <UserIcon class="w-6 h-6 transition-all group-active:scale-90" :class="$route.path.startsWith('/profile') ? 'fill-current' : ''" />
                         <span class="text-[10px] font-bold text-center">Profile</span>
                     </router-link>
                 </div>

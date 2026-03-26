@@ -2,7 +2,7 @@
 <MobileLayout :showHeader="false" :showFooter="false">
 <div class="font-display text-slate-900 pb-6 overflow-x-hidden selection:bg-primary selection:text-white flex flex-col justify-between h-full min-h-[calc(100vh-2rem)]">
     <header class="flex items-center justify-between px-5 py-4 sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-gray-100">
-        <button @click="$router.push('/app/login')" class="flex items-center justify-center h-10 w-10 rounded-full hover:bg-gray-100 transition-colors -ml-2 text-slate-900">
+        <button @click="$router.push('/member/login')" class="flex items-center justify-center h-10 w-10 rounded-full hover:bg-gray-100 transition-colors -ml-2 text-slate-900">
             <ChevronLeftIcon class="w-6 h-6" />
         </button>
         <h1 class="text-lg font-bold text-slate-900 absolute left-1/2 -translate-x-1/2">Daftar Member</h1>
@@ -91,7 +91,7 @@
                     <ArrowRight v-if="!loading" class="w-5 h-5" />
                 </button>
                 <p class="text-center mt-4 text-sm text-slate-500">
-                    Sudah punya akun? <router-link to="/app/login" class="font-bold text-primary hover:underline">Masuk disini</router-link>
+                    Sudah punya akun? <router-link to="/member/login" class="font-bold text-primary hover:underline">Masuk disini</router-link>
                 </p>
             </div>
         </form>

@@ -16,6 +16,8 @@ class Customer extends Model
         'name',
         'phone',
         'email',
+        'provider_name',
+        'provider_id',
         'birth_date',
         'points_balance',
         'is_banned',

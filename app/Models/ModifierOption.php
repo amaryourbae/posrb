@@ -25,4 +25,23 @@ class ModifierOption extends Model
     {
         return $this->belongsTo(Modifier::class);
     }
+
+    public function salePrices(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(SalesType::class, 'modifier_option_sale_prices')
+            ->withPivot('price')
+            ->withTimestamps();
+    }
+
+    public function getPriceForSalesType($salesTypeSlug)
+    {
+        if (empty($salesTypeSlug)) return $this->price;
+
+        $salePrice = $this->salePrices()->where(fn($query) => $query->where('slug', '=', $salesTypeSlug, 'and'))->first();
+        if ($salePrice) {
+            return $salePrice->pivot->price;
+        }
+
+        return $this->price;
+    }
 }

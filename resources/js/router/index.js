@@ -40,6 +40,12 @@ const routes = [
         meta: { requiresAuth: true, role: 'super_admin', title: 'Shift Management' }
     },
     {
+        path: '/admin/shifts/:id',
+        name: 'ShiftShow',
+        component: () => import('../views/admin/shifts/Show.vue'),
+        meta: { requiresAuth: true, role: 'super_admin', title: 'Shift Details' }
+    },
+    {
         path: '/admin/discounts',
         name: 'Discounts',
         component: () => import('../views/admin/discounts/Index.vue'),
@@ -83,22 +89,22 @@ const routes = [
         meta: { requiresAuth: true, role: 'super_admin', title: 'Add Product' }
     },
     {
-        path: '/admin/products/:id/edit',
+        path: '/admin/products/:slug/edit',
         name: 'ProductEdit',
         component: () => import('../views/admin/products/Form.vue'),
         meta: { requiresAuth: true, role: 'super_admin', title: 'Edit Product' }
-    },
-    {
-        path: '/admin/products/:id/edit',
-        name: 'ProductEdit',
-        component: () => import('../views/admin/products/Form.vue'),
-        meta: { requiresAuth: true, role: 'super_admin' }
     },
     {
         path: '/admin/inventory',
         name: 'Inventory',
         component: () => import('../views/admin/inventory/Index.vue'),
         meta: { requiresAuth: true, role: 'super_admin', title: 'Inventory' }
+    },
+    {
+        path: '/admin/units',
+        name: 'Units',
+        component: () => import('../views/admin/inventory/Units.vue'),
+        meta: { requiresAuth: true, role: 'super_admin', title: 'Unit Management' }
     },
     {
         path: '/admin/banners',
@@ -113,10 +119,28 @@ const routes = [
         meta: { requiresAuth: true, role: 'super_admin', title: 'Settings' }
     },
     {
+        path: '/admin/settings/updates',
+        name: 'AppUpdates',
+        component: () => import('../views/admin/settings/AppUpdates.vue'),
+        meta: { requiresAuth: true, role: 'super_admin', title: 'App Updates' }
+    },
+    {
         path: '/admin/reports',
         name: 'Reports',
         component: () => import('../views/admin/reports/Index.vue'),
         meta: { requiresAuth: true, role: 'super_admin', title: 'Reports' }
+    },
+    {
+        path: '/admin/reports/profit-loss',
+        name: 'ProfitLoss',
+        component: () => import('../views/admin/reports/ProfitLoss.vue'),
+        meta: { requiresAuth: true, role: 'super_admin', title: 'Profit & Loss' }
+    },
+    {
+        path: '/admin/reports/inventory',
+        name: 'InventoryReport',
+        component: () => import('../views/admin/reports/InventoryReport.vue'),
+        meta: { requiresAuth: true, role: 'super_admin', title: 'Stock Report' }
     },
     {
         path: '/admin/customers',
@@ -180,157 +204,174 @@ const routes = [
     },
     // Customer App Routes
     {
-        path: '/app',
+        path: '/',
         name: 'CustomerHome',
         component: () => import('../views/customer/Home.vue'),
         meta: { guest: true, title: 'Home' } 
     },
     {
-        path: '/app/order',
+        path: '/order',
         name: 'CustomerMenu',
         component: () => import('../views/customer/Menu.vue'),
         meta: { guest: true, title: 'Menu' }
     },
     {
-        path: '/app/product/:id',
+        path: '/product/:id',
         name: 'CustomerProduct',
         component: () => import('../views/customer/Product.vue'),
         meta: { guest: true, title: 'Product Details' }
     },
     {
-        path: '/app/payment/:id',
+        path: '/payment/:id',
         name: 'CustomerPayment',
         component: () => import('../views/customer/Payment.vue'),
         meta: { guest: true, title: 'Payment' }
     },
     {
-        path: '/app/payment/success/:id',
+        path: '/payment/success/:id',
         name: 'CustomerPaymentSuccess',
         component: () => import('../views/customer/PaymentSuccess.vue'),
         meta: { guest: true, title: 'Payment Success' }
     },
     {
-        path: '/app/cart',
+        path: '/cart',
         name: 'CustomerCart',
         component: () => import('../views/customer/Cart.vue'),
         meta: { guest: true, title: 'My Cart' }
     },
     {
-        path: '/app/checkout',
+        path: '/checkout',
         name: 'CustomerCheckout',
         component: () => import('../views/customer/Checkout.vue'),
         meta: { guest: true, title: 'Checkout' }
     },
     {
-        path: '/app/promo',
+        path: '/promo',
         name: 'CustomerPromo',
         component: () => import('../views/customer/Promo.vue'),
         meta: { memberAuth: true, title: 'Promos' }
     },
     {
-        path: '/app/help',
+        path: '/help',
         name: 'CustomerHelp',
         component: () => import('../views/customer/HelpCenter.vue'),
         meta: { memberAuth: true, title: 'Help Center' }
     },
     // Loyalty
     {
-        path: '/app/rewards',
+        path: '/rewards',
         name: 'CustomerRewards',
         component: () => import('../views/customer/rewards/Index.vue'),
         meta: { memberAuth: true, title: 'Rewards' }
     },
     {
-        path: '/app/rewards/:id',
+        path: '/rewards/:id',
         name: 'CustomerRewardDetail',
         component: () => import('../views/customer/rewards/Show.vue'),
         meta: { memberAuth: true, title: 'Reward Detail' }
     },
     {
-        path: '/app/vouchers',
+        path: '/vouchers',
         name: 'CustomerVouchers',
         component: () => import('../views/customer/vouchers/Index.vue'),
         meta: { memberAuth: true, title: 'My Vouchers' }
     },
     {
-        path: '/app/vouchers/:id',
+        path: '/vouchers/:id',
         name: 'CustomerVoucherDetail',
         component: () => import('../views/customer/vouchers/Show.vue'),
         meta: { memberAuth: true, title: 'Voucher Detail' }
     },
     // Profile Sub-features
     {
-        path: '/app/profile/edit',
+        path: '/profile/edit',
         name: 'CustomerProfileEdit',
         component: () => import('../views/customer/profile/EditProfile.vue'),
         meta: { memberAuth: true, title: 'Edit Profile' }
     },
 
     {
-        path: '/app/profile/security',
+        path: '/profile/security',
         name: 'CustomerSecurity',
         component: () => import('../views/customer/profile/Security.vue'),
         meta: { memberAuth: true, title: 'Security' }
     },
     // Member Auth
     {
-        path: '/app/login',
+        path: '/member/login',
         name: 'MemberLogin',
         component: () => import('../views/auth/MemberLogin.vue'),
         meta: { guest: true, title: 'Member Login' }
     },
     {
-        path: '/app/register',
+        path: '/member/register',
         name: 'MemberRegister',
         component: () => import('../views/auth/MemberRegister.vue'),
         meta: { guest: true, title: 'Member Register' }
     },
     {
-        path: '/app/verify-otp',
+        path: '/member/verify-otp',
         name: 'MemberVerify',
         component: () => import('../views/auth/MemberVerify.vue'),
-        meta: { guest: true, title: 'Verify' } // Technically needs temp state, but 'guest' is fine
+        meta: { guest: true, title: 'Verify' }
     },
-    // Legal
     {
-        path: '/app/profile/terms',
+        path: '/profile/terms',
         name: 'CustomerTerms',
         component: () => import('../views/customer/profile/Terms.vue'),
         meta: { guest: true, title: 'Terms of Service' }
     },
     {
-        path: '/app/profile/privacy',
+        path: '/profile/privacy',
         name: 'CustomerPrivacy',
         component: () => import('../views/customer/profile/Privacy.vue'),
         meta: { guest: true, title: 'Privacy Policy' }
     },
     {
-        path: '/app/orders',
+        path: '/orders',
         name: 'CustomerOrders',
         component: () => import('../views/customer/Orders.vue'),
         meta: { memberAuth: true, title: 'My Orders' }
     },
     {
-        path: '/app/orders/:id',
+        path: '/orders/:id',
         name: 'CustomerOrderDetail',
         component: () => import('../views/customer/OrderDetail.vue'),
         meta: { memberAuth: true, title: 'Order Details' }
     },
     {
-        path: '/app/orders/:id/receipt',
+        path: '/orders/:id/receipt',
         name: 'CustomerReceipt',
         component: () => import('../views/customer/Receipt.vue'),
         meta: { memberAuth: true, title: 'Receipt' }
     },
     {
-        path: '/app/profile',
+        path: '/profile',
         name: 'MemberProfile',
         component: () => import('../views/customer/Profile.vue'),
         meta: { memberAuth: true, title: 'My Profile' }
     },
     {
-        path: '/',
-        redirect: '/pos' 
+        path: '/app',
+        redirect: '/' 
+    },
+    {
+        // Catch-all for any trailing /app/ routes (e.g. /app/order -> /order)
+        path: '/app/:pathMatch(.*)*',
+        redirect: to => {
+            const pathSegments = to.path.replace(/^\/app\/?/, '');
+            
+            // Special cases for member auth pages
+            if (pathSegments.startsWith('login')) return '/member/login';
+            if (pathSegments.startsWith('register')) return '/member/register';
+            if (pathSegments.startsWith('verify-otp')) return '/member/verify-otp';
+            
+            return '/' + pathSegments;
+        }
+    },
+    {
+        path: '/:pathMatch(.*)*',
+        redirect: '/'
     }
 ];
 
@@ -346,7 +387,7 @@ router.beforeEach(async (to, from, next) => {
 
     // Member Auth Guard
     if (to.meta.memberAuth && !memberStore.isAuthenticated) {
-        next('/app/login');
+        next('/member/login');
         return;
     }
 
@@ -358,15 +399,18 @@ router.beforeEach(async (to, from, next) => {
     
     // Guest Guard: Redirect authenticated users away from explicit Guest-Only pages (Login/Register)
     const guestOnlyRoutes = ['Login', 'MemberLogin', 'MemberRegister', 'MemberVerify'];
-    if (to.meta.guest && authStore.isAuthenticated && guestOnlyRoutes.includes(to.name)) {
-        // If it's a Member trying to access Member Auth pages, redirect to Member Profile or Home
-        if (to.name.startsWith('Member')) {
-             next('/app');
+    if (to.meta.guest) {
+        // Core APP (POS/Admin)
+        if (authStore.isAuthenticated && to.name === 'Login') {
+             next(authStore.hasRole('cashier') ? '/pos' : '/admin');
              return;
         }
-        // If it's Staff, go to Dashboard
-        next(authStore.hasRole('cashier') ? '/pos' : '/admin');
-        return;
+        
+        // Member APP
+        if (memberStore.isAuthenticated && (to.name === 'MemberLogin' || to.name === 'MemberRegister' || to.name === 'MemberVerify')) {
+            next('/');
+            return;
+        }
     }
 
     // Role Based Access Control
@@ -375,18 +419,47 @@ router.beforeEach(async (to, from, next) => {
         const isSuperAdmin = userRoles.some(r => r.name === 'super_admin');
         const isStoreManager = userRoles.some(r => r.name === 'store_manager');
         const isCashier = userRoles.some(r => r.name === 'cashier');
+        const isReport = userRoles.some(r => r.name === 'report');
 
-        // Cashier Restrictions
-        if (isCashier && to.path.startsWith('/admin')) {
-            next('/pos');
+        if (isSuperAdmin) {
+            // Super Admin has full open doors
+            next();
             return;
         }
 
-        if (isStoreManager && !isSuperAdmin) {
-            const restrictedPaths = ['/admin/users', '/admin/audit-logs', '/admin/settings'];
+        // Store Manager Restrictions
+        if (isStoreManager) {
+            const restrictedPaths = ['/pos', '/admin/settings', '/admin/audit-logs', '/admin/banners'];
             if (restrictedPaths.some(path => to.path.startsWith(path))) {
-                next('/admin'); // Fallback to dashboard
+                next('/admin');
+                return;
+            }
+        }
 
+        // Cashier Restrictions (Can only access POS, Catalog, Inventory, Customers)
+        if (isCashier) {
+            const allowedPrefixes = [
+                '/pos', 
+                '/admin/products', '/admin/categories', '/admin/modifiers', '/admin/discounts',
+                '/admin/inventory', '/admin/ingredients', '/admin/units', '/admin/suppliers',
+                '/admin/customers'
+            ];
+            // If they are trying to go somewhere not explicitly allowed and it starts with /admin, block them
+            if (to.path.startsWith('/admin') && !allowedPrefixes.some(path => to.path.startsWith(path))) {
+                next('/pos');
+                return;
+            }
+        }
+
+        // Report Restrictions (Can only access Catalog, Inventory, Reports)
+        if (isReport) {
+            const allowedPrefixes = [
+                '/admin/products', '/admin/categories', '/admin/modifiers', '/admin/discounts',
+                '/admin/inventory', '/admin/ingredients', '/admin/units', '/admin/suppliers',
+                '/admin/reports'
+            ];
+            if ((to.path.startsWith('/admin') || to.path.startsWith('/pos')) && !allowedPrefixes.some(path => to.path.startsWith(path))) {
+                next('/admin/reports');
                 return;
             }
         }

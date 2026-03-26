@@ -98,6 +98,7 @@
                         <label class="block text-sm font-medium text-gray-700 mb-1">Role</label>
                         <select v-model="form.role" required class="w-full border border-gray-300 rounded-lg focus:ring-primary focus:border-primary py-2.5 px-3 bg-white">
                             <option value="cashier">Cashier</option>
+                            <option value="report">Report / Admin Data</option>
                             <option value="store_manager">Store Manager</option>
                             <option value="super_admin">Super Admin</option>
                         </select>

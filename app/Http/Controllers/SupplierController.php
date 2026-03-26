@@ -18,7 +18,7 @@ class SupplierController extends Controller
         $query = Supplier::orderBy('created_at', 'desc');
 
         if ($request->has('search')) {
-            $query->where('name', 'like', "%{$request->search}%")
+            $query->where('name', 'like', "%{$request->search}%", 'and')
                   ->orWhere('contact_person', 'like', "%{$request->search}%");
         }
 
@@ -73,7 +73,7 @@ class SupplierController extends Controller
     public function destroy(Supplier $supplier)
     {
         $name = $supplier->name;
-        $supplier->delete();
+        Supplier::destroy($supplier->id);
         \App\Helpers\LogHelper::log('supplier.deleted', "Deleted supplier {$name}", null);
         
         return $this->successResponse(null, 'Supplier deleted');

@@ -14,11 +14,10 @@ class RewardSeeder extends Seeder
     public function run(): void
     {
         // Ensure products exist or use placeholders if specific IDs needed
-        // We will try to find products by name or fallback
         
-        $kopiRuang = Product::where('name', 'like', '%Kopi Ruang%')->first();
-        $butterscotch = Product::where('name', 'like', '%Butterscotch%')->first();
-        $americano = Product::where('name', 'like', '%Americano%')->first();
+        $kopiRuang = Product::query()->where(fn($q) => $q->where('name', 'like', '%Kopi Ruang%', 'and'), null, null, 'and')->first(['*']);
+        $butterscotch = Product::query()->where(fn($q) => $q->where('name', 'like', '%Butterscotch%', 'and'), null, null, 'and')->first(['*']);
+        $americano = Product::query()->where(fn($q) => $q->where('name', 'like', '%Americano%', 'and'), null, null, 'and')->first(['*']);
 
         $rewards = [
             [

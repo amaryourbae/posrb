@@ -6,7 +6,7 @@
         <!-- Main Container -->
         <div class="flex flex-col h-screen overflow-hidden">
             <!-- Header -->
-            <header class="bg-white px-6 py-4 flex items-center justify-between shadow-sm z-10 shrink-0">
+            <header class="bg-white px-4 md:px-6 pb-4 pt-[calc(1rem+env(safe-area-inset-top))] flex items-center justify-between shadow-sm z-10 shrink-0">
                 <div class="flex items-center gap-4">
                     <!-- Toggle Button -->
                     <button 

@@ -1,6 +1,6 @@
 <template>
     <MobileLayout :showHeader="false" :showFooter="true">
-        <div class="min-h-screen bg-white font-sans text-slate-900">
+        <div class="bg-white font-sans text-slate-900 pb-32">
             
             <!-- Custom Green Header -->
             <header class="bg-primary px-5 pt-6 pb-6 rounded-b-[32px] shadow-lg shadow-primary/20 relative z-10">
@@ -12,16 +12,16 @@
                     </div>
                     
                     <div class="flex items-center gap-2">
-                        <button v-if="member" @click="$router.push('/app/rewards')" class="h-10 px-3 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-white border border-white/10 active:bg-white/20 transition-colors gap-2">
+                        <button v-if="member" @click="$router.push('/rewards')" class="h-10 px-3 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-white border border-white/10 active:bg-white/20 transition-colors gap-2">
                             <CoinsIcon class="w-4 h-4 text-yellow-400 fill-current" />
                             <span class="text-xs font-bold">{{ member.points_balance || 0 }}</span>
                         </button>
                         
-                        <button @click="$router.push('/app/profile')" class="w-10 h-10 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-white border border-white/10 active:bg-white/20 transition-colors">
+                        <button @click="$router.push('/profile')" class="w-10 h-10 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-white border border-white/10 active:bg-white/20 transition-colors">
                             <UserIcon class="w-5 h-5" v-if="!member" />
                             <img v-else :src="member.avatar_url || `https://ui-avatars.com/api/?name=${member.name}&background=ffffff&color=006041`" class="w-full h-full rounded-full object-cover" />
                         </button>
-                        <button @click="$router.push('/app/cart')" class="w-10 h-10 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-white border border-white/10 active:bg-white/20 transition-colors relative">
+                        <button @click="$router.push('/cart')" class="w-10 h-10 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-white border border-white/10 active:bg-white/20 transition-colors relative">
                             <ShoppingBagIcon class="w-5 h-5" />
                             <span v-if="store.cartCount > 0" class="absolute top-2.5 right-2.5 w-2 h-2 bg-red-400 rounded-full border border-primary"></span>
                         </button>
@@ -130,7 +130,7 @@
                 <div class="mt-8">
                     <div class="flex items-center justify-between mb-4">
                         <h3 class="text-lg font-bold text-slate-900">Bincang Rasa</h3>
-                        <button @click="$router.push({ path: '/app/order', query: { filter: 'recommended' } })" class="text-sm font-bold text-primary hover:underline">See All</button>
+                        <button @click="$router.push({ path: '/order', query: { filter: 'recommended' } })" class="text-sm font-bold text-primary hover:underline">See All</button>
                     </div>
 
                     <!-- Category Pills -->
@@ -156,7 +156,7 @@
                         <div 
                             v-for="item in displayedProducts" 
                             :key="item.id"
-                            @click="$router.push(`/app/product/${item.id}`)" 
+                            @click="$router.push(`/product/${item.slug}`)" 
                             class="bg-white p-3 rounded-[20px] shadow-sm border border-gray-100 cursor-pointer active:scale-[0.98] transition-transform"
                         >
                             <div class="relative w-full aspect-square rounded-[16px] bg-[#F8F9FA] overflow-hidden mb-3">
@@ -169,7 +169,7 @@
                                 <h4 class="font-bold text-slate-900 text-sm line-clamp-1">{{ item.name }}</h4>
                                 <p class="text-xs text-gray-500 line-clamp-2 mt-1 leading-snug">{{ item.description }}</p>
                                 <div class="flex items-center justify-between mt-2">
-                                     <p class="font-bold text-slate-900">Rp {{ formatNumber(item.price) }}</p>
+                                     <p class="font-bold text-slate-900">Rp {{ formatNumber(store.resolveProductPrice(item)) }}</p>
                                      <div class="w-7 h-7 rounded-full bg-[#5a6c37] flex items-center justify-center text-white">
                                          <PlusIcon class="w-4 h-4" />
                                      </div>
@@ -236,7 +236,7 @@ const searchQuery = ref('');
 
 const handleSearch = () => {
     if (searchQuery.value.trim()) {
-        router.push({ path: '/app/order', query: { q: searchQuery.value } });
+        router.push({ path: '/order', query: { q: searchQuery.value } });
     }
 };
 
@@ -252,7 +252,7 @@ const formatNumber = (num) => new Intl.NumberFormat('id-ID').format(num);
 const setOrderType = (type) => {
     orderType.value = type;
     store.setOrderType(type);
-    router.push('/app/order');
+    router.push('/order');
 };
 
 onMounted(() => {
@@ -277,7 +277,7 @@ const activeBanners = computed(() => {
         description: 'Get Free Up to 20% Discount!',
         image_url: null, 
         action_label: 'Claim',
-        action_link: '/app/promo'
+        action_link: '/promo'
     }];
 });
 

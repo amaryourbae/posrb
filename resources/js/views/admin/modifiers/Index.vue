@@ -128,6 +128,30 @@
                                         <label class="block text-xs font-medium text-gray-500 mb-1">Name Suffix</label>
                                         <input v-model="opt.name_suffix" type="text" placeholder="Suffix" class="w-full border border-gray-300 rounded-lg bg-white py-2 px-3 text-sm focus:ring-primary focus:border-primary">
                                     </div>
+
+                                    <!-- Sales Type Prices -->
+                                    <div class="col-span-12 mt-2 pt-2 border-t border-gray-100">
+                                        <label class="text-xs font-bold text-gray-400 mb-2 uppercase flex items-center">
+                                            <TagIcon class="w-3 h-3 mr-1" />
+                                            Sales Type Prices
+                                        </label>
+                                        <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+                                            <div v-for="st in salesTypes" :key="st.id" class="space-y-1">
+                                                <label class="block text-[10px] font-bold text-gray-500 uppercase">{{ st.name }}</label>
+                                                <div class="relative">
+                                                    <span class="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 text-[10px]">Rp</span>
+                                                    <input 
+                                                        v-model.number="opt.sale_prices_map[st.id]" 
+                                                        type="number" 
+                                                        min="0" 
+                                                        step="1000" 
+                                                        class="w-full border border-gray-200 rounded-md bg-white py-1.5 pl-7 pr-2 text-xs focus:ring-primary focus:border-primary"
+                                                        placeholder="0"
+                                                    >
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -151,13 +175,14 @@
 <script setup>
 import { ref, onMounted, reactive } from 'vue';
 import MainLayout from '../../../components/layout/MainLayout.vue';
-import { PlusIcon, PencilIcon, TrashIcon, XIcon } from 'lucide-vue-next';
+import { PlusIcon, PencilIcon, TrashIcon, XIcon, TagIcon } from 'lucide-vue-next';
 import api from '../../../api/axios';
 import { useToast } from "vue-toastification";
 
 const toast = useToast();
 
 const modifiers = ref([]);
+const salesTypes = ref([]);
 const showModal = ref(false);
 const isEditing = ref(false);
 const loading = ref(false);
@@ -168,7 +193,7 @@ const form = reactive({
     name: '',
     type: 'radio',
     is_required: false,
-    options: [{ name: '', price: 0 }]
+    options: [{ name: '', price: 0, sale_prices_map: {} }]
 });
 
 const formatNumber = (num) => new Intl.NumberFormat('id-ID').format(num);
@@ -177,12 +202,16 @@ const fetchModifiers = async () => {
     if (modifiers.value.length === 0) pageLoading.value = true;
     
     try {
-        const response = await api.get('/admin/modifiers');
-        const rawData = response.data?.data || response.data || [];
-        modifiers.value = Array.isArray(rawData) ? rawData : [];
+        const [modRes, stRes] = await Promise.all([
+            api.get('/admin/modifiers'),
+            api.get('/admin/sales-types')
+        ]);
+        
+        modifiers.value = modRes.data?.data || modRes.data || [];
+        salesTypes.value = stRes.data?.data || stRes.data || [];
     } catch (error) {
-        console.error('Error fetching modifiers:', error);
-        toast.error('Failed to load modifiers');
+        console.error('Error fetching data:', error);
+        toast.error('Failed to load data');
     } finally {
         pageLoading.value = false;
     }
@@ -195,22 +224,31 @@ const openModal = (modifier = null) => {
         form.name = modifier.name;
         form.type = modifier.type;
         form.is_required = !!modifier.is_required;
-        form.options = modifier.options.map(o => ({ 
-            id: o.id, 
-            name: o.name, 
-            price: parseFloat(o.price) || 0,
-            name_prefix: o.name_prefix || '',
-            name_suffix: o.name_suffix || '',
-            icon: o.icon || ''
-        }));
-        if (form.options.length === 0) form.options = [{ name: '', price: 0, name_prefix: '', name_suffix: '', icon: '' }];
+        form.options = modifier.options.map(o => {
+            const spMap = {};
+            if (o.sale_prices) {
+                o.sale_prices.forEach(sp => {
+                    spMap[sp.id] = parseFloat(sp.pivot.price);
+                });
+            }
+            return { 
+                id: o.id, 
+                name: o.name, 
+                price: parseFloat(o.price) || 0,
+                name_prefix: o.name_prefix || '',
+                name_suffix: o.name_suffix || '',
+                icon: o.icon || '',
+                sale_prices_map: spMap
+            };
+        });
+        if (form.options.length === 0) form.options = [{ name: '', price: 0, name_prefix: '', name_suffix: '', icon: '', sale_prices_map: {} }];
     } else {
         isEditing.value = false;
         editId.value = null;
         form.name = '';
         form.type = 'radio';
         form.is_required = false;
-        form.options = [{ name: '', price: 0, name_prefix: '', name_suffix: '', icon: '' }];
+        form.options = [{ name: '', price: 0, name_prefix: '', name_suffix: '', icon: '', sale_prices_map: {} }];
     }
     showModal.value = true;
 };
@@ -220,7 +258,7 @@ const closeModal = () => {
 };
 
 const addOption = () => {
-    form.options.push({ name: '', price: 0, name_prefix: '', name_suffix: '', icon: '' });
+    form.options.push({ name: '', price: 0, name_prefix: '', name_suffix: '', icon: '', sale_prices_map: {} });
 };
 
 const removeOption = (index) => {
@@ -243,7 +281,21 @@ const saveModifier = async () => {
             name: form.name,
             type: form.type,
             is_required: form.is_required,
-            options: validOptions
+            options: validOptions.map(opt => {
+                const sale_prices = [];
+                Object.keys(opt.sale_prices_map || {}).forEach(stId => {
+                    if (opt.sale_prices_map[stId] !== undefined && opt.sale_prices_map[stId] !== null) {
+                        sale_prices.push({
+                            sales_type_id: stId,
+                            price: opt.sale_prices_map[stId]
+                        });
+                    }
+                });
+                return {
+                    ...opt,
+                    sale_prices
+                };
+            })
         };
         
         if (isEditing.value) {

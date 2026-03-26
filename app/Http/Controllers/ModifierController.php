@@ -17,7 +17,7 @@ class ModifierController extends Controller
      */
     public function index()
     {
-        $modifiers = Modifier::with('options')->orderBy('name')->get();
+        $modifiers = Modifier::with('options.salePrices')->orderBy('name')->get();
         return $this->successResponse($modifiers);
     }
 
@@ -33,6 +33,9 @@ class ModifierController extends Controller
             'options' => 'required|array|min:1',
             'options.*.name' => 'required|string|max:255',
             'options.*.price' => 'numeric|min:0',
+            'options.*.sale_prices' => 'nullable|array',
+            'options.*.sale_prices.*.sales_type_id' => 'required|string|exists:sales_types,id',
+            'options.*.sale_prices.*.price' => 'required|numeric|min:0',
         ]);
 
         DB::beginTransaction();
@@ -44,11 +47,16 @@ class ModifierController extends Controller
             ]);
 
             foreach ($validated['options'] as $index => $optionData) {
-                $modifier->options()->create([
+                $option = $modifier->options()->create([
                     'name' => $optionData['name'],
                     'price' => $optionData['price'] ?? 0,
                     'sort_order' => $index,
                 ]);
+
+                if (!empty($optionData['sale_prices'])) {
+                    $prices = collect($optionData['sale_prices'])->keyBy('sales_type_id')->map(fn($p) => ['price' => $p['price']]);
+                    $option->salePrices()->sync($prices);
+                }
             }
 
             DB::commit();
@@ -65,7 +73,7 @@ class ModifierController extends Controller
      */
     public function show(Modifier $modifier)
     {
-        return $this->successResponse($modifier->load('options'));
+        return $this->successResponse($modifier->load('options.salePrices'));
     }
 
     /**
@@ -81,6 +89,9 @@ class ModifierController extends Controller
             'options.*.id' => 'nullable|integer|exists:modifier_options,id',
             'options.*.name' => 'required|string|max:255',
             'options.*.price' => 'numeric|min:0',
+            'options.*.sale_prices' => 'nullable|array',
+            'options.*.sale_prices.*.sales_type_id' => 'required|string|exists:sales_types,id',
+            'options.*.sale_prices.*.price' => 'required|numeric|min:0',
         ]);
 
         DB::beginTransaction();
@@ -97,17 +108,23 @@ class ModifierController extends Controller
 
             foreach ($validated['options'] as $index => $optionData) {
                 if (isset($optionData['id'])) {
-                    ModifierOption::find($optionData['id'])->update([
+                    $option = ModifierOption::find($optionData['id']);
+                    $option->update([
                         'name' => $optionData['name'],
                         'price' => $optionData['price'] ?? 0,
                         'sort_order' => $index,
                     ]);
                 } else {
-                    $modifier->options()->create([
+                    $option = $modifier->options()->create([
                         'name' => $optionData['name'],
                         'price' => $optionData['price'] ?? 0,
                         'sort_order' => $index,
                     ]);
+                }
+
+                if (isset($optionData['sale_prices'])) {
+                    $prices = collect($optionData['sale_prices'])->keyBy('sales_type_id')->map(fn($p) => ['price' => $p['price']]);
+                    $option->salePrices()->sync($prices);
                 }
             }
 

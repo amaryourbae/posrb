@@ -1,7 +1,8 @@
 <template>
-    <div class="h-screen w-full flex justify-center bg-gray-100 overflow-hidden font-sans relative">
+    <div class="fixed inset-0 w-full flex justify-center bg-gray-100 overflow-hidden font-sans">
+        <div class="w-full max-w-md h-full flex flex-col relative">
         <!-- Sticky Header -->
-        <div class="absolute top-0 z-50 w-full max-w-md pointer-events-none transition-all duration-300">
+        <div class="absolute top-0 z-50 w-full pointer-events-none transition-all duration-300">
              <div class="absolute inset-0 bg-white shadow-sm transition-opacity duration-300" :style="{ opacity: headerOpacity }"></div>
              
              <div class="relative z-10 p-4 flex justify-between items-center">
@@ -19,7 +20,7 @@
         </div>
 
         <!-- Scroll Container -->
-        <div ref="scrollContainer" @scroll="handleScroll" class="w-full max-w-md h-full overflow-y-auto relative bg-gray-100 scroll-smooth shadow-2xl [&::-webkit-scrollbar]:hidden">
+        <div ref="scrollContainer" @scroll="handleScroll" class="flex-1 overflow-y-auto relative bg-gray-100 scroll-smooth shadow-2xl [&::-webkit-scrollbar]:hidden">
             
             <!-- Sticky Hero Image (Parallax) -->
             <div class="sticky top-0 w-full h-96 z-0 shrink-0 overflow-hidden">
@@ -115,7 +116,7 @@
         </div>
 
         <!-- Sticky Bottom Action Bar -->
-        <div class="absolute bottom-0 z-50 w-full max-w-md bg-white border-t border-gray-100 p-4 pb-4 shadow-[0_-5px_20px_rgba(0,0,0,0.05)]">
+        <div class="flex-none w-full z-50 bg-white border-t border-gray-100 p-4 pb-safe shadow-[0_-5px_20px_rgba(0,0,0,0.05)]">
              <div class="flex items-center gap-4">
                   <!-- Qty Stepper -->
                   <div class="flex items-center border border-gray-200 rounded-full h-12 px-2 shrink-0">
@@ -143,6 +144,7 @@
              <p v-if="pointsMissing() > 0" class="text-center text-xs text-red-500 mt-3 font-bold bg-red-50 py-1.5 rounded-lg">
                  Poin tidak cukup (Kurang {{ pointsMissing() }})
              </p>
+        </div>
         </div>
     </div>
 </template>
@@ -183,7 +185,7 @@ onMounted(async () => {
     }
     reward.value = store.rewards.find(r => r.id === id);
     if (!reward.value) {
-         router.replace('/app/rewards');
+         router.replace('/rewards');
     }
     if (authStore.isAuthenticated) {
         authStore.fetchMe();
@@ -217,7 +219,7 @@ const confirmRedeem = async () => {
                 position: "top-left",
                 toastClassName: "customer-toast"
             });
-             router.push('/app/vouchers');
+             router.push('/vouchers');
          }
      } finally {
          loading.value = false;

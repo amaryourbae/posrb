@@ -5,7 +5,7 @@
              <div class="sticky top-0 z-20 bg-white/95 backdrop-blur-md shadow-sm">
                 <!-- Top Bar -->
                 <div class="flex items-center px-4 py-3 justify-between border-b border-gray-50">
-                     <router-link to="/app" class="text-gray-900 flex w-10 h-10 shrink-0 items-center justify-center rounded-full hover:bg-gray-100 transition-colors">
+                     <router-link to="/" class="text-gray-900 flex w-10 h-10 shrink-0 items-center justify-center rounded-full hover:bg-gray-100 transition-colors">
                         <ChevronLeftIcon class="w-6 h-6" />
                     </router-link>
                      <h2 class="text-slate-800 text-lg font-bold leading-tight tracking-tight">Menu</h2>
@@ -86,7 +86,7 @@
                 <section v-if="!showFavorites" id="sec-recommended" class="pt-6 px-4 mb-2 scroll-mt-36">
                     <div class="flex justify-between items-end mb-4 px-1">
                         <h3 class="text-xl font-bold text-slate-800 tracking-tight">Rekomendasi</h3>
-                        <router-link to="/app/order?filter=recommended" class="text-xs font-bold text-[#5a6c37] mb-1">Lihat Semua</router-link>
+                        <router-link to="/order?filter=recommended" class="text-xs font-bold text-[#5a6c37] mb-1">Lihat Semua</router-link>
                     </div>
                     <!-- Horizontal Scroll -->
                     <div class="flex gap-4 overflow-x-auto no-scrollbar pb-6 -mx-4 px-4 snap-x">
@@ -97,7 +97,7 @@
                             v-else
                             v-for="item in recommendedItems" 
                             :key="item.id" 
-                            @click="router.push(`/app/product/${item.id}`)"
+                            @click="router.push(`/product/${item.slug}`)"
                             class="snap-center shrink-0 w-[300px] bg-white p-3 rounded-2xl shadow-sm border border-gray-100 flex items-start gap-3 active:scale-[0.98] transition-transform relative cursor-pointer"
                         >
                             <div class="w-24 h-24 rounded-xl bg-gray-100 overflow-hidden shrink-0">
@@ -107,7 +107,7 @@
                                 <h4 class="font-bold text-slate-800 text-base leading-tight line-clamp-2 mb-1">{{ item.name }}</h4>
                                 <p class="text-xs text-gray-500 line-clamp-2 mb-2 leading-relaxed">{{ item.description }}</p>
                                 <div class="flex justify-between items-end">
-                                    <p class="font-bold text-slate-900">Rp {{ formatNumber(item.price) }}</p>
+                                    <p class="font-bold text-slate-900">Rp {{ formatNumber(store.resolveProductPrice(item)) }}</p>
                                     <button class="w-7 h-7 rounded-full bg-[#5a6c37] text-white flex items-center justify-center shadow-md shadow-green-900/20 active:scale-90 transition-transform">
                                         <PlusIcon class="w-4 h-4" />
                                     </button>
@@ -130,7 +130,7 @@
                         <div 
                             v-for="item in favorites" 
                             :key="item.id" 
-                            @click="router.push(`/app/product/${item.id}`)"
+                            @click="router.push(`/product/${item.slug}`)"
                             class="snap-center shrink-0 w-[300px] bg-white p-3 rounded-2xl shadow-sm border border-gray-100 flex items-start gap-3 active:scale-[0.98] transition-transform relative cursor-pointer"
                         >
                             <div class="w-24 h-24 rounded-xl bg-gray-100 overflow-hidden shrink-0">
@@ -140,7 +140,7 @@
                                 <h4 class="font-bold text-slate-800 text-base leading-tight line-clamp-2 mb-1">{{ item.name }}</h4>
                                 <p class="text-xs text-gray-500 line-clamp-2 mb-2 leading-relaxed">{{ item.description }}</p>
                                 <div class="flex justify-between items-end">
-                                    <p class="font-bold text-slate-900">Rp {{ formatNumber(item.price) }}</p>
+                                    <p class="font-bold text-slate-900">Rp {{ formatNumber(store.resolveProductPrice(item)) }}</p>
                                     <button class="w-7 h-7 rounded-full bg-[#5a6c37] text-white flex items-center justify-center shadow-md shadow-green-900/20 active:scale-90 transition-transform">
                                         <PlusIcon class="w-4 h-4" />
                                     </button>
@@ -172,7 +172,7 @@
                          <div 
                             v-for="product in cat.products"
                             :key="product.id"
-                            @click="router.push(`/app/product/${product.id}`)"
+                            @click="router.push(`/product/${product.slug}`)"
                             class="bg-white p-3 rounded-[20px] shadow-sm border border-gray-100 cursor-pointer active:scale-[0.98] transition-transform"
                         >
                             <div class="relative w-full aspect-square rounded-[16px] bg-[#F8F9FA] overflow-hidden mb-3">
@@ -187,7 +187,7 @@
                                 <div class="flex items-center justify-between mt-2">
                                      <div class="flex flex-col">
                                          <p v-if="product.original_price" class="text-[10px] text-gray-400 line-through">Rp {{ formatNumber(product.original_price) }}</p>
-                                         <p class="font-bold text-slate-900">Rp {{ formatNumber(product.price) }}</p>
+                                         <p class="font-bold text-slate-900">Rp {{ formatNumber(store.resolveProductPrice(product)) }}</p>
                                      </div>
                                      <div class="w-7 h-7 rounded-full bg-[#5a6c37] flex items-center justify-center text-white active:bg-slate-700 transition-colors">
                                          <PlusIcon class="w-4 h-4" />
@@ -221,7 +221,7 @@
                         </div>
                         
                         <!-- Floating Cart Button -->
-                        <router-link to="/app/checkout" class="flex items-center justify-between bg-[#5a6c37] text-white p-4 rounded-full shadow-2xl shadow-primary/30 cursor-pointer hover:bg-[#4a5c2e] transition-all active:scale-[0.98] ring-1 ring-white/10 backdrop-blur-sm">
+                        <router-link to="/checkout" class="flex items-center justify-between bg-[#5a6c37] text-white p-4 rounded-full shadow-2xl shadow-primary/30 cursor-pointer hover:bg-[#4a5c2e] transition-all active:scale-[0.98] ring-1 ring-white/10 backdrop-blur-sm">
                             <div class="flex items-center gap-3">
                                 <div class="bg-white/20 p-2 rounded-full">
                                     <ShoppingBagIcon class="w-5 h-5 text-white" />

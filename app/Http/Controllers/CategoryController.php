@@ -17,7 +17,12 @@ class CategoryController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Category::orderBy('name');
+        $query = Category::orderBy('sort_order', 'asc')->orderBy('name', 'asc');
+
+        // Only show categories that have products on the public frontend
+        if ($request->is('api/public/*')) {
+            $query->has('products');
+        }
 
         if ($request->has('search')) {
             $search = $request->search;

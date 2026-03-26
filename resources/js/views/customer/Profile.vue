@@ -55,13 +55,13 @@
                         <h2 class="text-lg font-bold text-slate-900 truncate">{{ member?.name || 'Tamu' }}</h2>
                         <p class="text-slate-500 text-sm truncate">{{ member?.phone || '-' }}</p>
                     </div>
-                    <button @click="$router.push('/app/profile/edit')" class="text-sm font-semibold text-primary bg-primary/10 px-3 py-1.5 rounded-full">
+                    <button @click="$router.push('/profile/edit')" class="text-sm font-semibold text-primary bg-primary/10 px-3 py-1.5 rounded-full">
                         Edit
                     </button>
                 </div>
     
                 <!-- Membership Card -->
-                <div @click="$router.push('/app/rewards')" class="cursor-pointer w-full h-48 rounded-2xl bg-linear-to-br from-[#5a6c37] to-[#4a5930] shadow-lg shadow-primary/20 relative overflow-hidden flex flex-col justify-between p-6 text-white group active:scale-[0.98] transition-transform">
+                <div @click="$router.push('/rewards')" class="cursor-pointer w-full h-48 rounded-2xl bg-linear-to-br from-[#5a6c37] to-[#4a5930] shadow-lg shadow-primary/20 relative overflow-hidden flex flex-col justify-between p-6 text-white group active:scale-[0.98] transition-transform">
                     <!-- Background Pattern -->
                     <div class="absolute top-0 right-0 h-full w-1/2 flex items-center justify-center opacity-10 pointer-events-none group-hover:scale-105 transition-transform duration-700">
                         <img src="/bg-member.png" class="w-24 h-24 object-contain -mr-4 -mt-12" alt="Pattern" />
@@ -91,20 +91,20 @@
     
                 <!-- Quick Actions Grid -->
                 <div class="grid grid-cols-3 gap-2"> <!-- Changed to 3 cols -->
-                    <button @click="$router.push('/app/orders')" class="flex flex-col items-center gap-2 p-3 rounded-2xl bg-white active:bg-gray-50 transition-colors shadow-sm border border-gray-100">
+                    <button @click="$router.push('/orders')" class="flex flex-col items-center gap-2 p-3 rounded-2xl bg-white active:bg-gray-50 transition-colors shadow-sm border border-gray-100">
                         <div class="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
                             <ShoppingBagIcon class="w-5 h-5" />
                         </div>
                         <span class="text-[10px] font-semibold text-slate-600 text-center">Pesanan</span>
                     </button>
-                    <button @click="$router.push('/app/promo')" class="flex flex-col items-center gap-2 p-3 rounded-2xl bg-white active:bg-gray-50 transition-colors shadow-sm border border-gray-100">
+                    <button @click="$router.push('/promo')" class="flex flex-col items-center gap-2 p-3 rounded-2xl bg-white active:bg-gray-50 transition-colors shadow-sm border border-gray-100">
                         <div class="w-10 h-10 rounded-full bg-orange-50 flex items-center justify-center text-orange-600">
                             <TicketIcon class="w-5 h-5" />
                         </div>
                         <span class="text-[10px] font-semibold text-slate-600 text-center">Voucher</span>
                     </button>
                     <!-- Help Center -->
-                    <button @click="$router.push('/app/help')" class="flex flex-col items-center gap-2 p-3 rounded-2xl bg-white active:bg-gray-50 transition-colors shadow-sm border border-gray-100">
+                    <button @click="$router.push('/help')" class="flex flex-col items-center gap-2 p-3 rounded-2xl bg-white active:bg-gray-50 transition-colors shadow-sm border border-gray-100">
                         <div class="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600">
                             <HeadphonesIcon class="w-5 h-5" />
                         </div>
@@ -119,7 +119,7 @@
                     <h3 class="text-sm font-bold text-slate-900">Akun Saya</h3>
                 </div>
                 <div>
-                    <button @click="$router.push('/app/profile/edit')" class="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors text-left border-b border-gray-50 last:border-0">
+                    <button @click="$router.push('/profile/edit')" class="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors text-left border-b border-gray-50 last:border-0">
                         <div class="flex items-center gap-3">
                             <UserIcon class="w-5 h-5 text-gray-400" />
                             <span class="text-sm font-medium text-slate-700">Edit Profil</span>
@@ -127,7 +127,7 @@
                         <ChevronRightIcon class="w-4 h-4 text-gray-300" />
                     </button>
 
-                    <button @click="$router.push('/app/profile/security')" class="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors text-left">
+                    <button @click="$router.push('/profile/security')" class="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors text-left">
                         <div class="flex items-center gap-3">
                             <LockIcon class="w-5 h-5 text-gray-400" />
                             <span class="text-sm font-medium text-slate-700">Keamanan</span>
@@ -143,14 +143,14 @@
                     <h3 class="text-sm font-bold text-slate-900">Info Lainnya</h3>
                 </div>
                 <div>
-                    <button @click="$router.push('/app/profile/terms')" class="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors text-left border-b border-gray-50 last:border-0">
+                    <button @click="$router.push('/profile/terms')" class="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors text-left border-b border-gray-50 last:border-0">
                         <div class="flex items-center gap-3">
                             <FileTextIcon class="w-5 h-5 text-gray-400" />
                             <span class="text-sm font-medium text-slate-700">Syarat & Ketentuan</span>
                         </div>
                         <ChevronRightIcon class="w-4 h-4 text-gray-300" />
                     </button>
-                    <button @click="$router.push('/app/profile/privacy')" class="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors text-left">
+                    <button @click="$router.push('/profile/privacy')" class="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors text-left">
                         <div class="flex items-center gap-3">
                             <ShieldIcon class="w-5 h-5 text-gray-400" />
                             <span class="text-sm font-medium text-slate-700">Kebijakan Privasi</span>
@@ -284,7 +284,7 @@ const logout = () => {
 const confirmLogout = async () => {
     showLogoutModal.value = false;
     await authStore.logout();
-    router.push('/app/login');
+    router.push('/member/login');
 };
 
 onMounted(async () => {

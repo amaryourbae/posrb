@@ -29,6 +29,13 @@
                 >
                     Hardware & Printers
                 </button>
+                <button 
+                    @click="activeTab = 'sales_types'"
+                    class="px-6 py-2 pb-3 font-medium text-sm transition-colors border-b-2 whitespace-nowrap"
+                    :class="activeTab === 'sales_types' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700'"
+                >
+                    Sales Types
+                </button>
 
             </div>
 
@@ -114,14 +121,92 @@
                     </div>
                 </div>
 
+                <!-- Sales Types Settings -->
+                <div v-show="activeTab === 'sales_types'" @click.stop>
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-lg font-bold text-gray-800">Sales Types</h3>
+                        <button type="button" @click="openSalesTypeModal()" class="bg-primary text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center">
+                            <PlusIcon class="w-4 h-4 mr-1" /> Add Sales Type
+                        </button>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm">
+                            <thead class="bg-gray-50 text-gray-600 uppercase text-xs">
+                                <tr>
+                                    <th class="px-4 py-3">Name</th>
+                                    <th class="px-4 py-3">Slug</th>
+                                    <th class="px-4 py-3">Status</th>
+                                    <th class="px-4 py-3 text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100">
+                                <tr v-for="type in salesTypes" :key="type.id" class="hover:bg-gray-50 transition-colors">
+                                    <td class="px-4 py-3 font-medium">{{ type.name }}</td>
+                                    <td class="px-4 py-3 text-gray-500">{{ type.slug }}</td>
+                                    <td class="px-4 py-3">
+                                        <span class="px-2 py-1 rounded-full text-xs font-bold" 
+                                              :class="type.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'">
+                                            {{ type.is_active ? 'Active' : 'Inactive' }}
+                                        </span>
+                                    </td>
+                                    <td class="px-4 py-3 text-right space-x-2">
+                                        <button type="button" @click="openSalesTypeModal(type)" class="text-blue-600 hover:text-blue-800">
+                                            <PencilIcon class="w-4 h-4" />
+                                        </button>
+                                        <button type="button" @click="deleteSalesType(type.id)" class="text-red-600 hover:text-red-800">
+                                            <TrashIcon class="w-4 h-4" />
+                                        </button>
+                                    </td>
+                                </tr>
+                                <tr v-if="salesTypes.length === 0">
+                                    <td colspan="4" class="px-4 py-8 text-center text-gray-400">No sales types found.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
 
 
-                <div class="flex justify-end pt-4 border-t border-gray-100">
+
+                <div v-if="activeTab !== 'sales_types'" class="flex justify-end pt-4 border-t border-gray-100">
                     <button type="submit" :disabled="loading" class="bg-primary hover:bg-green-800 text-white px-6 py-2 rounded-lg font-bold transition-colors disabled:opacity-50 flex items-center">
                         {{ loading ? 'Saving...' : 'Save Settings' }}
                     </button>
                 </div>
             </form>
+        </div>
+
+        <!-- Sales Type Modal -->
+        <div v-if="showSalesTypeModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div class="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
+                    <h3 class="font-bold text-lg">{{ editingSalesType ? 'Edit Sales Type' : 'Add Sales Type' }}</h3>
+                    <button @click="showSalesTypeModal = false" class="text-gray-400 hover:text-gray-600">
+                        <XIcon class="w-6 h-6" />
+                    </button>
+                </div>
+                <form @submit.prevent="saveSalesType" class="p-6 space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                        <input v-model="salesTypeForm.name" type="text" required placeholder="e.g. GoFood" class="w-full border border-gray-400 rounded-lg bg-gray-50 focus:ring-primary focus:border-primary py-2 px-3">
+                    </div>
+                    <div class="flex items-center">
+                        <input v-model="salesTypeForm.is_active" type="checkbox" id="is_active" class="rounded text-primary focus:ring-primary">
+                        <label for="is_active" class="ml-2 text-sm text-gray-700">Active</label>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Sort Order</label>
+                        <input v-model="salesTypeForm.sort_order" type="number" class="w-full border border-gray-400 rounded-lg bg-gray-50 focus:ring-primary focus:border-primary py-2 px-3">
+                    </div>
+                    <div class="flex justify-end space-x-3 pt-4">
+                        <button type="button" @click="showSalesTypeModal = false" class="px-4 py-2 text-gray-600 hover:text-gray-800 font-medium">Cancel</button>
+                        <button type="submit" :disabled="modalLoading" class="bg-primary text-white px-6 py-2 rounded-lg font-bold disabled:opacity-50">
+                            {{ modalLoading ? 'Saving...' : 'Save' }}
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
     </MainLayout>
 </template>
@@ -131,13 +216,30 @@ import { ref, onMounted, reactive } from 'vue';
 import MainLayout from '../../../components/layout/MainLayout.vue';
 import api from '../../../api/axios';
 import { useToast } from "vue-toastification";
+import { 
+    PlusIcon, 
+    PencilIcon, 
+    TrashIcon, 
+    XIcon 
+} from 'lucide-vue-next';
 
 const toast = useToast();
 
 const loading = ref(false);
+const modalLoading = ref(false);
 const activeTab = ref('general');
 const previewLogo = ref(null);
 const logoFile = ref(null);
+
+// Sales Types State
+const salesTypes = ref([]);
+const showSalesTypeModal = ref(false);
+const editingSalesType = ref(null);
+const salesTypeForm = reactive({
+    name: '',
+    is_active: true,
+    sort_order: 0
+});
 
 const settings = reactive({
     store_name: '',
@@ -178,6 +280,60 @@ const fetchSettings = async () => {
         }
     } catch (error) {
         console.error("Failed to load settings", error);
+    }
+};
+
+const fetchSalesTypes = async () => {
+    try {
+        const response = await api.get('/admin/sales-types');
+        salesTypes.value = response.data.data;
+    } catch (error) {
+        console.error("Failed to fetch sales types", error);
+    }
+};
+
+const openSalesTypeModal = (type = null) => {
+    editingSalesType.value = type;
+    if (type) {
+        salesTypeForm.name = type.name;
+        salesTypeForm.is_active = !!type.is_active;
+        salesTypeForm.sort_order = type.sort_order;
+    } else {
+        salesTypeForm.name = '';
+        salesTypeForm.is_active = true;
+        salesTypeForm.sort_order = salesTypes.value.length + 1;
+    }
+    showSalesTypeModal.value = true;
+};
+
+const saveSalesType = async () => {
+    modalLoading.value = true;
+    try {
+        if (editingSalesType.value) {
+            await api.put(`/admin/sales-types/${editingSalesType.value.id}`, salesTypeForm);
+            toast.success('Sales type updated');
+        } else {
+            await api.post('/admin/sales-types', salesTypeForm);
+            toast.success('Sales type created');
+        }
+        showSalesTypeModal.value = false;
+        fetchSalesTypes();
+    } catch (error) {
+        toast.error('Failed to save sales type');
+    } finally {
+        modalLoading.value = false;
+    }
+};
+
+const deleteSalesType = async (id) => {
+    if (!confirm('Are you sure you want to delete this sales type?')) return;
+    try {
+        await api.delete(`/admin/sales-types/${id}`);
+        toast.success('Sales type deleted');
+        fetchSalesTypes();
+    } catch (error) {
+        const msg = error.response?.data?.message || 'Failed to delete';
+        toast.error(msg);
     }
 };
 
@@ -223,5 +379,6 @@ const saveSettings = async () => {
 
 onMounted(() => {
     fetchSettings();
+    fetchSalesTypes();
 });
 </script>

@@ -30,29 +30,49 @@
         </div>
 
         <!-- Navigation -->
-        <div class="flex-1 py-6 px-3 space-y-1 overflow-y-auto w-full">
-            <template v-for="item in filteredMenuItems" :key="item.path">
-                <router-link
-                    :to="item.path"
-                    @click="$emit('close-mobile')"
-                    class="flex items-center px-4 py-3 rounded-xl transition-all duration-200 group"
-                    :class="[
-                        isActive(item.path)
-                            ? 'bg-primary text-white shadow-md'
-                            : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900',
-                        collapsed && !mobileOpen ? 'md:justify-center md:px-2' : ''
-                    ]"
-                    :title="collapsed ? item.label : ''"
-                >
-                    <component :is="item.icon" 
-                        class="shrink-0"
-                        :class="[
-                            isActive(item.path) ? 'text-white' : 'text-gray-400 group-hover:text-primary',
-                            collapsed && !mobileOpen ? 'w-6 h-6' : 'w-5 h-5 mr-3'
-                        ]"
-                    />
-                    <span v-if="!collapsed || mobileOpen" class="font-medium truncate">{{ item.label }}</span>
-                </router-link>
+        <div class="flex-1 py-6 px-3 space-y-4 overflow-y-auto w-full">
+            <template v-for="(group, groupIndex) in filteredMenuItems" :key="groupIndex">
+                <div v-if="group.items.length > 0" class="space-y-1">
+                    <!-- Group Header -->
+                    <div 
+                        v-if="!collapsed || mobileOpen"
+                        class="px-4 py-2 text-xs font-bold text-gray-400 uppercase tracking-wider flex justify-between items-center cursor-pointer hover:text-gray-600 transition-colors"
+                        @click="toggleGroup(group.title)"
+                    >
+                        <span>{{ group.title }}</span>
+                        <ChevronDownIcon 
+                            class="w-4 h-4 transition-transform duration-200"
+                            :class="{ '-rotate-90': !openGroups[group.title] }"
+                        />
+                    </div>
+                    
+                    <!-- Group Items -->
+                    <div v-show="collapsed && !mobileOpen || openGroups[group.title]" class="space-y-1">
+                        <template v-for="item in group.items" :key="item.path">
+                            <router-link
+                                :to="item.path"
+                                @click="$emit('close-mobile')"
+                                class="flex items-center px-4 py-3 rounded-xl transition-all duration-200 group"
+                                :class="[
+                                    isActive(item.path)
+                                        ? 'bg-primary text-white shadow-md'
+                                        : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900',
+                                    collapsed && !mobileOpen ? 'md:justify-center md:px-2' : ''
+                                ]"
+                                :title="collapsed ? item.label : ''"
+                            >
+                                <component :is="item.icon" 
+                                    class="shrink-0"
+                                    :class="[
+                                        isActive(item.path) ? 'text-white' : 'text-gray-400 group-hover:text-primary',
+                                        collapsed && !mobileOpen ? 'w-6 h-6' : 'w-5 h-5 mr-3'
+                                    ]"
+                                />
+                                <span v-if="!collapsed || mobileOpen" class="font-medium truncate">{{ item.label }}</span>
+                            </router-link>
+                        </template>
+                    </div>
+                </div>
             </template>
         </div>
 
@@ -88,11 +108,16 @@ import {
     TruckIcon,
     ShieldCheckIcon,
     XIcon,
-    ImageIcon
+    ImagesIcon,
+    ScaleIcon,
+    SmartphoneIcon,
+    TrendingUpIcon,
+    ChevronDownIcon,
+    FoldersIcon
 } from 'lucide-vue-next';
 
 import api from '../../api/axios';
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
 
 const route = useRoute();
 const authStore = useAuthStore();
@@ -110,34 +135,92 @@ defineProps({
     }
 });
 
-const isActive = (path) => route.path === path;
+const isActive = (path) => {
+    // Avoid marking parent active when on child route unless exact match,
+    // except for dashboard where exact match is required
+    if (path === '/admin') {
+        return route.path === '/admin';
+    }
+    return route.path.startsWith(path);
+};
 
-const menuItems = [
-    { path: '/admin', label: 'Dashboard', icon: LayoutDashboardIcon, roles: ['super_admin', 'store_manager'] },
-    { path: '/admin/orders', label: 'Transactions', icon: ClipboardListIcon, roles: ['super_admin', 'store_manager'] },
-    { path: '/pos', label: 'POS System', icon: ShoppingBagIcon, roles: ['super_admin', 'store_manager', 'cashier'] },
-    { path: '/admin/categories', label: 'Categories', icon: TagsIcon, roles: ['super_admin', 'store_manager'] },
-    { path: '/admin/products', label: 'Products', icon: PackageIcon, roles: ['super_admin', 'store_manager'] },
-    { path: '/admin/modifiers', label: 'Modifiers', icon: TagsIcon, roles: ['super_admin', 'store_manager'] },
-    { path: '/admin/inventory', label: 'Inventory', icon: WarehouseIcon, roles: ['super_admin', 'store_manager'] },
-    { path: '/admin/suppliers', label: 'Suppliers', icon: TruckIcon, roles: ['super_admin', 'store_manager'] },
-    { path: '/admin/customers', label: 'Members', icon: UsersIcon, roles: ['super_admin', 'store_manager', 'cashier'] },
-    { path: '/admin/users', label: 'Employees', icon: UsersIcon, roles: ['super_admin'] },
-    { path: '/admin/shifts', label: 'Shift History', icon: ClipboardListIcon, roles: ['super_admin', 'store_manager'] },
-    { path: '/admin/discounts', label: 'Discounts', icon: TagsIcon, roles: ['super_admin', 'store_manager'] },
-    { path: '/admin/banners', label: 'Banners', icon: ImageIcon, roles: ['super_admin'] },
-    { path: '/admin/reports', label: 'Reports', icon: PieChartIcon, roles: ['super_admin', 'store_manager'] },
-    { path: '/admin/audit-logs', label: 'Audit Logs', icon: ShieldCheckIcon, roles: ['super_admin'] },
-    { path: '/admin/settings', label: 'Settings', icon: SettingsIcon, roles: ['super_admin'] },
+const menuStructure = [
+    {
+        title: 'Core',
+        items: [
+            { path: '/admin', label: 'Dashboard', icon: LayoutDashboardIcon, roles: ['super_admin', 'store_manager', 'cashier', 'report'] },
+            { path: '/admin/orders', label: 'Transactions', icon: ClipboardListIcon, roles: ['super_admin', 'store_manager'] },
+            { path: '/pos', label: 'POS System', icon: ShoppingBagIcon, roles: ['super_admin', 'cashier'] },
+            { path: '/admin/shifts', label: 'Shift History', icon: ClipboardListIcon, roles: ['super_admin', 'store_manager'] },
+        ]
+    },
+    {
+        title: 'Catalog',
+        items: [
+            { path: '/admin/products', label: 'Products', icon: PackageIcon, roles: ['super_admin', 'store_manager', 'cashier', 'report'] },
+            { path: '/admin/categories', label: 'Categories', icon: FoldersIcon, roles: ['super_admin', 'store_manager', 'cashier', 'report'] },
+            { path: '/admin/modifiers', label: 'Modifiers', icon: TagsIcon, roles: ['super_admin', 'store_manager', 'cashier', 'report'] },
+            { path: '/admin/discounts', label: 'Discounts', icon: TagsIcon, roles: ['super_admin', 'store_manager', 'cashier', 'report'] },
+        ]
+    },
+    {
+        title: 'Inventory',
+        items: [
+            { path: '/admin/inventory', label: 'Stock Current', icon: WarehouseIcon, roles: ['super_admin', 'store_manager', 'cashier', 'report'] },
+            { path: '/admin/units', label: 'Units', icon: ScaleIcon, roles: ['super_admin', 'store_manager', 'cashier', 'report'] },
+            { path: '/admin/suppliers', label: 'Suppliers', icon: TruckIcon, roles: ['super_admin', 'store_manager', 'cashier', 'report'] },
+        ]
+    },
+    {
+        title: 'People',
+        items: [
+            { path: '/admin/customers', label: 'Members', icon: UsersIcon, roles: ['super_admin', 'store_manager', 'cashier'] },
+            { path: '/admin/users', label: 'Employees', icon: UsersIcon, roles: ['super_admin', 'store_manager'] },
+        ]
+    },
+    {
+        title: 'Reports & Analytics',
+        items: [
+            { path: '/admin/reports', label: 'Sales Report', icon: PieChartIcon, roles: ['super_admin', 'store_manager', 'report'] },
+            { path: '/admin/reports/profit-loss', label: 'Laba Rugi (HPP)', icon: TrendingUpIcon, roles: ['super_admin', 'store_manager', 'report'] },
+            { path: '/admin/reports/inventory', label: 'Stock In/Out', icon: WarehouseIcon, roles: ['super_admin', 'store_manager', 'report'] },
+        ]
+    },
+    {
+        title: 'System',
+        items: [
+            { path: '/admin/banners', label: 'Banners', icon: ImagesIcon, roles: ['super_admin'] },
+            { path: '/admin/audit-logs', label: 'Audit Logs', icon: ShieldCheckIcon, roles: ['super_admin'] },
+            { path: '/admin/settings/updates', label: 'App Updates', icon: SmartphoneIcon, roles: ['super_admin'] },
+            { path: '/admin/settings', label: 'Settings', icon: SettingsIcon, roles: ['super_admin'] },
+        ]
+    }
 ];
+
+// Reactive state for open/closed groups
+const openGroups = ref({
+    'Core': true,
+    'Catalog': true,
+    'Inventory': true,
+    'People': false,
+    'Reports & Analytics': false,
+    'System': false,
+});
+
+const toggleGroup = (groupTitle) => {
+    openGroups.value[groupTitle] = !openGroups.value[groupTitle];
+};
 
 const filteredMenuItems = computed(() => {
     if (!authStore.user || !authStore.user.roles) return [];
     const userRoles = authStore.user.roles.map(r => r.name);
     
-    return menuItems.filter(item => {
-        return item.roles.some(role => userRoles.includes(role));
-    });
+    return menuStructure.map(group => {
+        const filteredItems = group.items.filter(item => {
+            return item.roles.some(role => userRoles.includes(role));
+        });
+        return { ...group, items: filteredItems };
+    }).filter(group => group.items.length > 0);
 });
 
 const fetchSettings = async () => {
@@ -161,7 +244,21 @@ const handleLogout = async () => {
     window.location.href = "/login";
 };
 
+const checkActiveGroup = () => {
+    menuStructure.forEach(group => {
+        const hasActiveItem = group.items.some(item => isActive(item.path));
+        if (hasActiveItem) {
+            openGroups.value[group.title] = true;
+        }
+    });
+};
+
+watch(() => route.path, () => {
+    checkActiveGroup();
+});
+
 onMounted(() => {
     fetchSettings();
+    checkActiveGroup();
 });
 </script>

@@ -28,12 +28,40 @@ export const useCustomerStore = defineStore('customer', {
         
         cartTotal: (state) => {
             return state.cart.reduce((total, item) => {
-                let itemTotal = item.price * item.quantity;
-                if (item.toppings && item.toppings.length) {
-                    return total + (item.unit_price * item.quantity);
-                }
-                return total + itemTotal;
+                // unit_price already includes modifiers/add-ons
+                return total + (item.unit_price * item.quantity);
             }, 0);
+        },
+
+        /**
+         * Resolve the price for a product based on the current orderType.
+         * Only supports 'dine_in' and 'pickup' for customers.
+         */
+        resolveProductPrice: (state) => {
+            return (product) => {
+                if (!product) return 0;
+                
+                const type = state.orderType;
+                if (!['dine_in', 'pickup'].includes(type)) return parseFloat(product.price);
+                
+                const salePrice = product.sale_prices?.find(sp => sp.slug === type);
+                return salePrice ? parseFloat(salePrice.pivot.price) : parseFloat(product.price);
+            };
+        },
+
+        /**
+         * Resolve the price for a modifier option based on the current orderType.
+         */
+        resolveModifierPrice: (state) => {
+            return (option) => {
+                if (!option) return 0;
+                
+                const type = state.orderType;
+                if (!['dine_in', 'pickup'].includes(type)) return parseFloat(option.price);
+                
+                const salePrice = option.sale_prices?.find(sp => sp.slug === type);
+                return salePrice ? parseFloat(salePrice.pivot.price) : parseFloat(option.price);
+            };
         },
         
         discountAmount: (state) => {
@@ -49,10 +77,7 @@ export const useCustomerStore = defineStore('customer', {
             // Existing `cartTotal` is arrow. I'll stick to arrow and re-calc to be safe/simple.
             
             const subtotal = state.cart.reduce((total, item) => {
-                if (item.toppings && item.toppings.length) {
-                    return total + (item.unit_price * item.quantity);
-                }
-                return total + (item.price * item.quantity);
+                return total + (item.unit_price * item.quantity);
             }, 0);
 
             // Check for reward voucher (free_product)
@@ -174,13 +199,15 @@ export const useCustomerStore = defineStore('customer', {
         addToCart(product, options = {}) {
             const { quantity = 1, modifiers = [], notes = '' } = options;
             
-            // Calculate base price + additions from dynamic modifiers
-            let unitPrice = parseFloat(product.price);
+            // Resolve base price for current order type
+            const basePrice = this.resolveProductPrice(product);
+            let unitPrice = basePrice;
             
             // Add modifier option prices
             if (modifiers && modifiers.length > 0) {
                 modifiers.forEach(mod => {
-                    unitPrice += parseFloat(mod.price) || 0;
+                    // mod here is the option object with sale_prices
+                    unitPrice += this.resolveModifierPrice(mod);
                 });
             }
 
@@ -199,9 +226,10 @@ export const useCustomerStore = defineStore('customer', {
                 this.cart.push({
                     cartId,
                     id: product.id,
+                    slug: product.slug,
                     name: product.name,
                     image_url: product.image_url,
-                    price: parseFloat(product.price), // Base price
+                    price: basePrice, // Resolved base price
                     unit_price: unitPrice, // Price with modifiers
                     quantity,
                     modifiers, // Array of { modifier_id, modifier_name, option_id, option_name, price }
@@ -249,7 +277,7 @@ export const useCustomerStore = defineStore('customer', {
                     customer_phone: paymentDetails.customerPhone || null,
                     order_type: paymentDetails.orderType || this.orderType || 'pickup_app',
                     payment_method: paymentDetails.method,
-                    payment_status: 'paid', // Simulate successful payment
+                    payment_status: paymentDetails.method === 'cashier' ? 'pending' : 'paid', // Cashier = pending, others simulate paid
                     note: paymentDetails.note || '',
                     customer_voucher_id: this.selectedVoucher?.code?.startsWith('RWD') ? this.selectedVoucher.id : null,
                     discount_id: this.selectedVoucher?.code?.startsWith('RWD') ? null : this.selectedVoucher?.id, 
@@ -291,6 +319,29 @@ export const useCustomerStore = defineStore('customer', {
         setOrderType(type) {
             this.orderType = type;
             localStorage.setItem('orderType', type);
+            
+            // Recalculate cart prices based on new order type
+            if (this.cart.length > 0) {
+                this.cart = this.cart.map(item => {
+                    const product = this.products.find(p => p.id === item.id) || this.recommendedProducts.find(p => p.id === item.id);
+                    if (product) {
+                        const newBasePrice = this.resolveProductPrice(product);
+                        let newUnitPrice = newBasePrice;
+                        if (item.modifiers && item.modifiers.length > 0) {
+                            item.modifiers.forEach(mod => {
+                                newUnitPrice += this.resolveModifierPrice(mod);
+                            });
+                        }
+                        return {
+                            ...item,
+                            price: newBasePrice,
+                            unit_price: newUnitPrice
+                        };
+                    }
+                    return item;
+                });
+                localStorage.setItem('customer_cart', JSON.stringify(this.cart));
+            }
         },
 
         async fetchSettings() {

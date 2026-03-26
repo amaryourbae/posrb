@@ -81,7 +81,7 @@
                             </td>
                             <td class="px-6 py-5 text-right space-x-2">
                                  <div class="flex items-center justify-end space-x-3">
-                                    <router-link :to="`/admin/products/${product.id}/edit`" class="text-blue-400 hover:text-blue-600 transition-colors p-1 rounded-lg hover:bg-blue-50" title="Edit">
+                                    <router-link :to="`/admin/products/${product.slug}/edit`" class="text-blue-400 hover:text-blue-600 transition-colors p-1 rounded-lg hover:bg-blue-50" title="Edit">
                                         <PencilIcon class="w-5 h-5" />
                                     </router-link>
                                     <button @click="deleteProduct(product.id)" class="text-red-400 hover:text-red-600 transition-colors p-1 rounded-lg hover:bg-red-50" title="Delete">

@@ -8,7 +8,7 @@
                         <ChevronLeftIcon class="w-6 h-6" />
                     </button>
                     <h1 class="text-lg font-bold tracking-tight text-gray-900 absolute left-1/2 -translate-x-1/2">My Vouchers</h1>
-                    <button @click="$router.push('/app/rewards')" class="text-xs font-bold text-primary h-10 flex items-center px-2 hover:bg-gray-50 rounded-lg transition-colors">
+                    <button @click="$router.push('/rewards')" class="text-xs font-bold text-primary h-10 flex items-center px-2 hover:bg-gray-50 rounded-lg transition-colors">
                         Tukar Poin
                     </button>
                 </div>
@@ -28,7 +28,7 @@
                     <TicketIcon class="w-16 h-16 text-gray-200 mb-4" />
                     <h3 class="text-lg font-bold text-slate-900">Belum ada Voucher</h3>
                     <p class="text-gray-500 text-sm mt-1 max-w-[200px]">Tukarkan poin kamu dengan voucher menarik sekarang!</p>
-                    <button @click="$router.push('/app/rewards')" class="mt-6 px-6 py-2.5 bg-primary text-white rounded-full font-bold text-sm shadow-md shadow-primary/20 active:scale-95 transition-transform">
+                    <button @click="$router.push('/rewards')" class="mt-6 px-6 py-2.5 bg-primary text-white rounded-full font-bold text-sm shadow-md shadow-primary/20 active:scale-95 transition-transform">
                         Tukar Poin Sekarang
                     </button>
                 </div>
@@ -118,6 +118,6 @@ const formatDate = (dateString) => {
 };
 
 const viewVoucher = (voucher) => {
-    router.push(`/app/vouchers/${voucher.id}`);
+    router.push(`/vouchers/${voucher.id}`);
 };
 </script>

@@ -3,7 +3,7 @@
         <template #header-custom>
             <!-- Top App Bar -->
             <header class="flex-none bg-white px-4 py-3 flex items-center justify-between border-b border-gray-100 shadow-sm z-40 sticky top-0">
-                <button @click="$router.push('/app/order')" class="size-10 flex items-center justify-center rounded-full hover:bg-gray-50 transition-colors text-slate-900">
+                <button @click="$router.push('/order')" class="size-10 flex items-center justify-center rounded-full hover:bg-gray-50 transition-colors text-slate-900">
                      <ChevronLeftIcon class="w-6 h-6" />
                 </button>
                 <h2 class="text-lg font-bold tracking-tight text-slate-900 absolute left-1/2 -translate-x-1/2">Checkout</h2>
@@ -160,7 +160,7 @@
                             <div class="flex-1 min-w-0">
                                 <p class="font-bold text-sm truncate text-slate-900">{{ product.name }}</p>
                                 <div class="flex items-center justify-between mt-2">
-                                    <span class="text-xs font-semibold text-slate-900">Rp {{ formatNumber(product.price) }}</span>
+                                    <span class="text-xs font-semibold text-slate-900">Rp {{ formatNumber(store.resolveProductPrice(product)) }}</span>
                                     <button 
                                         @click="quickAddUpsell(product)"
                                         class="w-6 h-6 rounded-full bg-primary text-white flex items-center justify-center shadow-md active:scale-90 transition-transform hover:bg-[#142118]"
@@ -179,7 +179,7 @@
                         <h4 class="font-bold text-sm text-slate-900">Ada tambahan lagi?</h4>
                         <p class="text-xs text-slate-500">Kamu masih bisa tambahin menu lain, ya.</p>
                     </div>
-                    <button @click="$router.push('/app/order')" class="px-4 py-1.5 rounded-full border border-slate-300 text-[12px] font-bold text-slate-700 hover:border-primary hover:text-primary transition-colors">
+                    <button @click="$router.push('/order')" class="px-4 py-1.5 rounded-full border border-slate-300 text-[12px] font-bold text-slate-700 hover:border-primary hover:text-primary transition-colors">
                         Tambah
                     </button>
                 </div>
@@ -189,7 +189,7 @@
                 <div>
                     <h3 class="font-bold text-[15px] mb-3 text-slate-900">Voucher & Rewards</h3>
                     <div 
-                        @click="$router.push('/app/vouchers')"
+                        @click="$router.push('/vouchers')"
                         class="border border-[#CFD9C8] bg-[#EFF4EA] rounded-xl p-4 flex items-center justify-between cursor-pointer active:scale-[0.99] transition-transform relative overflow-hidden"
                     >
                         <div class="flex items-center gap-3 z-10">
@@ -231,11 +231,13 @@
                     <h3 class="font-bold text-[15px] mb-3 text-slate-900">Metode Pembayaran</h3>
                     <div @click="openPaymentModal" class="flex items-center justify-between py-1 cursor-pointer">
                         <div class="flex items-center gap-3">
-                            <div class="w-8 h-5 border border-gray-200 rounded px-1 flex items-center justify-center">
-                                <span class="text-[10px] font-bold uppercase">{{ paymentMethod }}</span>
+                            <div class="min-w-[32px] h-5 border border-gray-200 rounded px-1 flex items-center justify-center">
+                                <span class="text-[10px] font-bold uppercase">
+                                    {{ paymentMethod === 'bank_transfer' ? 'TF' : paymentMethod === 'cashier' ? 'CASH' : paymentMethod }}
+                                </span>
                             </div>
                             <span class="font-bold text-sm text-slate-900 uppercase">
-                                {{ paymentMethod === 'qris' ? 'QRIS' : paymentMethod }}
+                                {{ paymentMethod === 'qris' ? 'QRIS' : paymentMethod === 'bank_transfer' ? 'Bank Transfer' : paymentMethod === 'cashier' ? 'Bayar di Kasir' : paymentMethod }}
                             </span>
                         </div>
                         <ChevronRightIcon class="w-5 h-5 text-slate-400" />
@@ -279,7 +281,7 @@
             </div>
         </div>
 
-        <div class="fixed bottom-0 w-full max-w-md bg-white border-t border-gray-100 z-30 shadow-[0_-5px_20px_rgba(0,0,0,0.05)]">
+        <div class="fixed bottom-0 w-full max-w-md bg-white border-t border-gray-100 z-30 pb-8 shadow-[0_-5px_20px_rgba(0,0,0,0.05)]">
             <!-- Points Banner -->
              <div class="bg-gray-50 py-2 px-5 flex items-center gap-2 justify-center">
                  <img src="/point.png" class="w-4 h-4 object-contain" />
@@ -306,13 +308,13 @@
                 
                 <div class="space-y-3">
                     <button 
-                        v-for="method in ['qris', 'ewallet', 'card', 'cashier']" 
+                        v-for="method in ['qris', 'bank_transfer', 'card', 'cashier']" 
                         :key="method"
                         @click="paymentMethod = method; showPaymentModal = false"
                         class="w-full flex items-center justify-between p-4 rounded-xl border transition-all"
                         :class="paymentMethod === method ? 'border-primary bg-gray-50' : 'border-gray-200 hover:border-gray-300'"
                     >
-                        <span class="font-bold text-slate-900 uppercase">{{ method === 'cashier' ? 'Bayar di Kasir' : method }}</span>
+                        <span class="font-bold text-slate-900 uppercase">{{ method === 'cashier' ? 'Bayar di Kasir' : method === 'bank_transfer' ? 'Bank Transfer' : method }}</span>
                         <div class="w-5 h-5 rounded-full border border-gray-300 flex items-center justify-center" :class="{'border-primary bg-primary': paymentMethod === method}">
                              <CheckIcon v-if="paymentMethod === method" class="w-3 h-3 text-white" />
                         </div>
@@ -468,7 +470,7 @@ const handlePayClick = async () => {
         });
 
         if (result) {
-            router.push(`/app/payment/${result.id || result}`);
+            router.push(`/payment/${result.id || result}`);
         }
     } catch(e) {
         alert("Terjadi kesalahan");
@@ -489,7 +491,7 @@ const validatePhone = async () => {
 const formatNumber = (n) => new Intl.NumberFormat('id-ID').format(n);
 const editItem = (item) => {
     router.push({
-        path: `/app/product/${item.id}`,
+        path: `/product/${item.slug || item.id}`,
         query: { cartId: item.cartId }
     });
 };
@@ -512,7 +514,7 @@ const confirmDelete = () => {
 </script>
 
 <style scoped>
-.pb-safe { padding-bottom: max(env(safe-area-inset-bottom), 1.5rem); }
+.pb-safe { padding-bottom: max(env(safe-area-inset-bottom), 5px); }
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 </style>

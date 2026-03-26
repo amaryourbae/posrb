@@ -36,7 +36,7 @@
                 <!-- Actions -->
                 <div class="w-full space-y-3 max-w-sm">
                     <button 
-                        @click="router.push('/app')" 
+                        @click="router.push('/')" 
                         class="w-full bg-primary hover:bg-[#0a3828] text-white font-bold py-4 rounded-xl shadow-lg shadow-primary/20 transition-transform active:scale-[0.98]"
                     >
                         Kembali ke Menu
@@ -44,7 +44,7 @@
                     <!-- Optional: View Order Status link -->
                     <!-- 
                     <button 
-                        @click="router.push(`/app/orders/${orderId}`)"
+                        @click="router.push(`/orders/${orderId}`)"
                         class="w-full bg-white border border-gray-200 text-gray-700 font-bold py-3.5 rounded-xl hover:bg-gray-50 transition"
                     >
                         Lihat Status Pesanan

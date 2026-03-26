@@ -23,13 +23,13 @@
                 </div>
                 <h3 class="text-lg font-bold text-slate-900">Belum ada pesanan</h3>
                 <p class="text-slate-500 text-sm mt-1">Yuk pesan kopi favoritmu sekarang!</p>
-                <button @click="$router.push('/app/order')" class="mt-6 bg-primary text-white font-bold py-3 px-6 rounded-xl shadow-lg shadow-primary/20">
+                <button @click="$router.push('/order')" class="mt-6 bg-primary text-white font-bold py-3 px-6 rounded-xl shadow-lg shadow-primary/20">
                     Pesan Sekarang
                 </button>
             </div>
 
             <div v-else class="space-y-4">
-                <div v-for="order in orders" :key="order.id" @click="$router.push(`/app/orders/${order.id}`)" class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 active:scale-[0.99] transition-transform cursor-pointer">
+                <div v-for="order in orders" :key="order.id" @click="$router.push(`/orders/${order.id}`)" class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 active:scale-[0.99] transition-transform cursor-pointer">
                     <!-- Header & Status -->
                     <div class="flex justify-between items-start mb-3 pb-3 border-b border-dashed border-gray-100">
                         <div>

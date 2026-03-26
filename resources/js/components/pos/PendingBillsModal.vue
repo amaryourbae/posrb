@@ -29,10 +29,10 @@
                                 :key="bill.id"
                                 class="p-4 bg-gray-50 rounded-xl border border-gray-100 hover:border-primary/50 cursor-pointer transition group"
                             >
-                                <div class="flex justify-between items-start mb-2">
-                                    <div>
-                                        <div class="flex items-center gap-2">
-                                            <h4 class="font-bold text-gray-900">{{ bill.order_number }}</h4>
+                                <div class="flex flex-col sm:flex-row justify-between items-start gap-2 mb-2">
+                                    <div class="flex-1 min-w-0 max-w-full">
+                                        <div class="flex items-center flex-wrap gap-2">
+                                            <h4 class="font-bold text-gray-900 text-sm sm:text-base break-all">{{ bill.order_number }}</h4>
                                             <span 
                                                 class="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider"
                                                 :class="bill.payment_status === 'paid' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'"
@@ -46,9 +46,9 @@
                                                 {{ bill.order_type.replace('_app', '').replace('_', ' ') }}
                                             </span>
                                         </div>
-                                        <p class="text-sm text-gray-500">{{ bill.customer_name || 'Walk-in' }}</p>
+                                        <p class="text-xs sm:text-sm text-gray-500 mt-1">{{ bill.customer_name || 'Walk-in' }}</p>
                                     </div>
-                                    <span class="text-lg font-bold text-primary">{{ formatCurrency(bill.grand_total) }}</span>
+                                    <span class="text-base sm:text-lg font-bold text-primary">{{ formatCurrency(bill.grand_total) }}</span>
                                 </div>
                                 <div class="flex items-center justify-between text-xs text-gray-400">
                                     <span>{{ bill.items?.length || 0 }} items</span>

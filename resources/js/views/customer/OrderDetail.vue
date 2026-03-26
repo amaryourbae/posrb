@@ -67,7 +67,7 @@
                         <span>Diskon Voucher</span>
                         <span>-{{ formatCurrency(order.discount_amount) }}</span>
                     </div>
-                    <div class="flex justify-between items-center text-xs text-slate-500">
+                    <div class="flex justify-between items-center text-xs text-slate-500" v-if="order.tax_amount > 0">
                         <span>PB1 ({{ Math.round((order.tax_amount / (order.subtotal - order.discount_amount)) * 100) }}%)</span>
                         <span>{{ formatCurrency(order.tax_amount) }}</span>
                     </div>
@@ -123,7 +123,7 @@
 
             <!-- E-Receipt Button (Scrollable) -->
             <div class="p-5">
-                <button @click="$router.push(`/app/orders/${order.id}/receipt`)" class="w-full h-11 rounded-full border border-primary text-primary font-bold text-[14px] active:bg-[#007042]/5 transition-colors bg-white">
+                <button @click="$router.push(`/orders/${order.id}/receipt`)" class="w-full h-11 rounded-full border border-primary text-primary font-bold text-[14px] active:bg-[#007042]/5 transition-colors bg-white">
                     Lihat E-Receipt
                 </button>
             </div>
@@ -155,7 +155,7 @@
         </main>
 
         <!-- Bottom Actions (Sticky 'Beli Lagi' Only) -->
-        <div class="fixed bottom-0 left-0 right-0 px-5 py-4 bg-white border-t border-gray-100 flex flex-col gap-3 pb-safe z-40 shadow-[0_-4px_20px_rgba(0,0,0,0.03)] mx-auto max-w-md" v-if="order">
+        <div class="fixed bottom-0 left-0 right-0 px-5 pt-4 pb-8 bg-white border-t border-gray-100 flex flex-col gap-3 z-40 shadow-[0_-4px_20px_rgba(0,0,0,0.03)] mx-auto max-w-md" v-if="order">
             <button @click="buyAgain" :disabled="reordering" class="w-full h-11 rounded-full bg-primary text-white font-bold text-[14px] shadow-lg shadow-[#007042]/20 hover:bg-[#005c36] transition-colors active:scale-[0.98] disabled:opacity-70 flex justify-center items-center gap-2">
                 <span v-if="!reordering">Beli Lagi</span>
                 <span v-else class="flex items-center gap-2">
@@ -275,7 +275,7 @@ const buyAgain = async () => {
                 position: "top-left",
                 toastClassName: "customer-toast"
             });
-            router.push('/app/cart');
+            router.push('/cart');
         } else {
             toast.error("Produk tidak tersedia", {
                 position: "top-left",

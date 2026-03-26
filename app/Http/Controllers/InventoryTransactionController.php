@@ -79,4 +79,50 @@ class InventoryTransactionController extends Controller
             ], 'Stock added successfully');
         });
     }
+
+    /**
+     * Handle Stock Out (Wastage / Manual Reduction).
+     * Decreases stock. Cost remains the same average cost.
+     */
+    public function stockOut(Request $request)
+    {
+        $request->validate([
+            'ingredient_id' => 'required|exists:ingredients,id',
+            'quantity' => 'required|numeric|min:0.0001',
+            'notes' => 'nullable|string'
+        ]);
+
+        return DB::transaction(function () use ($request) {
+            $ingredient = Ingredient::lockForUpdate()->find($request->ingredient_id);
+
+            $outQty = $request->quantity;
+            $currentCost = $ingredient->cost_per_unit;
+            
+            if ($ingredient->current_stock < $outQty) {
+                // Warning note: we allow it but log it
+            }
+
+            $newStock = $ingredient->current_stock - $outQty;
+
+            // Create Transaction Record
+            InventoryTransaction::create([
+                'ingredient_id' => $ingredient->id,
+                'type' => 'out',
+                'quantity' => $outQty,
+                'unit_cost' => $currentCost,
+                'total_cost' => $currentCost * $outQty,
+                'user_id' => $request->user()->id,
+                'notes' => $request->notes,
+                'reference' => 'MANUAL_STOCK_OUT'
+            ]);
+
+            // Update Ingredient (Cost stays the same)
+            $ingredient->current_stock = $newStock;
+            $ingredient->save();
+
+            return $this->successResponse([
+                'ingredient' => $ingredient
+            ], 'Stock deducted successfully');
+        });
+    }
 }

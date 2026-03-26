@@ -76,11 +76,11 @@
             <div class="border-b border-black border-dotted my-1"></div>
 
              <!-- Tax Breakdown -->
-            <div class="flex justify-between text-[9px] mb-0.5">
+            <div class="flex justify-between text-[9px] mb-0.5" v-if="order.tax_amount > 0">
                 <span>Net sales</span>
                 <span>Rp {{ formatNumber(order.subtotal - order.discount_amount) }}</span>
             </div>
-            <div class="flex justify-between text-[9px] mb-0.5">
+            <div class="flex justify-between text-[9px] mb-0.5" v-if="order.tax_amount > 0">
                 <span>PB1 {{ settings.tax_rate }}%</span> 
                 <span>Rp {{ formatNumber(order.tax_amount) }}</span>
             </div>
@@ -102,8 +102,8 @@
             <!-- Footer -->
             <div class="text-center mt-3 pb-2">
                 <p class="text-lg mb-1">Terima Kasih</p>
-                <p class="px-4">Ruang Bincang Coffee - Alam Bercerita, Kopi Menyapa</p>
-                <p class="mt-1" v-if="settings.store_website">{{ settings.store_website }}</p>
+                <p class="px-4">{{ settings?.receipt_footer || 'Dapatkan 1 minuman gratis dan berbagai keuntungan dengan mengumpulkan poin.' }}</p>
+                <p class="mt-1" v-if="settings?.store_website">{{ settings.store_website }}</p>
             </div>
         </div>
     </div>

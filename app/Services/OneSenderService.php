@@ -56,6 +56,65 @@ class OneSenderService
         }
     }
 
+    public function sendGroupMessage($groupId, $message)
+    {
+        try {
+            /** @var \Illuminate\Http\Client\Response $response */
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . $this->apiKey,
+                'Content-Type' => 'application/json',
+            ])->post($this->apiUrl, [
+                'recipient_type' => 'group',
+                'to' => $groupId,
+                'type' => 'text',
+                'text' => [
+                    'body' => $message
+                ]
+            ]);
+
+            if ($response->successful()) {
+                Log::info("WhatsApp group message sent to {$groupId}");
+                return true;
+            } else {
+                Log::error("OneSender Group Error: " . $response->body());
+                return false;
+            }
+        } catch (\Exception $e) {
+            Log::error("OneSender Group Exception: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    public function sendGroupImage($groupId, $imageUrl, $caption = '')
+    {
+        try {
+            /** @var \Illuminate\Http\Client\Response $response */
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . $this->apiKey,
+                'Content-Type' => 'application/json',
+            ])->post($this->apiUrl, [
+                'recipient_type' => 'group',
+                'to' => $groupId,
+                'type' => 'image',
+                'image' => [
+                    'link' => $imageUrl,
+                    'caption' => $caption
+                ]
+            ]);
+
+            if ($response->successful()) {
+                Log::info("WhatsApp group image sent to {$groupId}");
+                return true;
+            } else {
+                Log::error("OneSender Group Image Error: " . $response->body());
+                return false;
+            }
+        } catch (\Exception $e) {
+            Log::error("OneSender Group Image Exception: " . $e->getMessage());
+            return false;
+        }
+    }
+
     private function formatPhone($phone)
     {
         $phone = preg_replace('/\D/', '', $phone);

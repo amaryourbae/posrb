@@ -21,8 +21,8 @@ class UserController extends Controller
 
         // Only hide super_admin if the current user is NOT a super_admin
         if (!$request->user()->hasRole('super_admin')) {
-             $query->whereDoesntHave('roles', function ($q) {
-                $q->where('name', 'super_admin');
+            $query->whereDoesntHave('roles', function ($q) {
+                $q->where('name', '=', 'super_admin', 'and');
             });
         }
             
@@ -31,7 +31,7 @@ class UserController extends Controller
         if ($request->has('search')) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
+                $q->where('name', 'like', "%{$search}%", 'and')
                   ->orWhere('email', 'like', "%{$search}%");
             });
         }
@@ -54,7 +54,7 @@ class UserController extends Controller
                 'string',
                 'min:4',
                 'max:8',
-                Rule::requiredIf($request->role === 'store_manager')
+                Rule::requiredIf(fn() => $request->role === 'store_manager')
             ],
             'no_whatsapp' => 'nullable|string|max:20|unique:users',
         ]);
@@ -100,7 +100,7 @@ class UserController extends Controller
                 'string',
                 'min:4',
                 'max:8',
-                Rule::requiredIf($request->role === 'store_manager')
+                Rule::requiredIf(fn() => $request->role === 'store_manager')
             ],
             'no_whatsapp' => ['nullable', 'string', 'max:20', Rule::unique('users')->ignore($user->id)],
         ]);
@@ -135,7 +135,7 @@ class UserController extends Controller
         }
         
         $userName = $user->name;
-        $user->delete();
+        User::destroy($user->id);
         
         \App\Helpers\LogHelper::log('user.deleted', "Deleted user {$userName}", null); // Pass null as subject since it's deleted
 

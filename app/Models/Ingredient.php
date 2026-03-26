@@ -14,7 +14,7 @@ class Ingredient extends Model
 
     protected $fillable = [
         'name',
-        'unit',
+        'unit_id',
         'current_stock',
         'cost_per_unit',
         'minimum_stock_alert',
@@ -32,5 +32,10 @@ class Ingredient extends Model
                     ->using(ProductRecipe::class)
                     ->withPivot('quantity_needed')
                     ->withTimestamps();
+    }
+
+    public function unit()
+    {
+        return $this->belongsTo(Unit::class);
     }
 }

@@ -57,16 +57,35 @@
                 <div>
                      <label class="block text-sm font-medium text-gray-700 mb-2">Product Image</label>
                      <div class="flex items-center space-x-4">
-                        <div class="h-24 w-24 rounded-lg bg-gray-100 border border-gray-200 flex items-center justify-center overflow-hidden">
+                        <div class="relative h-24 w-24 rounded-lg bg-gray-100 border border-gray-200 flex items-center justify-center overflow-hidden group">
                             <img v-if="previewImage" :src="previewImage" class="h-full w-full object-cover">
                             <img v-else src="/no-image.jpg" class="h-full w-full object-cover opacity-50">
+                            <button 
+                                v-if="previewImage && isEditing" 
+                                type="button"
+                                @click="deleteImage" 
+                                class="absolute inset-0 bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                                title="Delete Image"
+                            >
+                                <TrashIcon class="w-5 h-5" />
+                            </button>
                         </div>
-                        <input 
-                            type="file" 
-                            @change="handleImageUpload" 
-                            accept="image/*"
-                            class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
-                        />
+                        <div class="flex-1">
+                            <input 
+                                type="file" 
+                                @change="handleImageUpload" 
+                                accept="image/*"
+                                class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
+                            />
+                            <button 
+                                v-if="previewImage && isEditing" 
+                                type="button" 
+                                @click="deleteImage" 
+                                class="mt-2 text-xs text-red-500 hover:text-red-700 font-medium flex items-center"
+                            >
+                                <TrashIcon class="w-3 h-3 mr-1" /> Remove Image
+                            </button>
+                        </div>
                      </div>
                 </div>
 
@@ -93,6 +112,36 @@
                         <label class="block text-sm font-medium text-gray-700 mb-1">Price (IDR)</label>
                         <input v-model="form.price" type="number" min="0" required class="w-full border border-gray-400 rounded-lg bg-gray-50 focus:ring-primary focus:border-primary transition-colors py-3 px-4">
                     </div>
+                </div>
+
+                <!-- Sales Type Pricing -->
+                <div class="bg-gray-50 p-6 rounded-xl border border-gray-200">
+                    <h3 class="text-sm font-bold text-gray-800 mb-4 flex items-center">
+                        <span class="bg-primary/10 text-primary p-1 rounded mr-2">
+                             <PlusIcon class="w-4 h-4" />
+                        </span>
+                        Pricing by Sales Type (Optional)
+                    </h3>
+                    <div class="space-y-4">
+                        <div v-for="type in activeSalesTypes" :key="type.id" class="flex items-center space-x-4">
+                            <div class="w-1/3">
+                                <span class="text-sm font-medium text-gray-700">{{ type.name }}</span>
+                                <p class="text-[10px] text-gray-400">Slug: {{ type.slug }}</p>
+                            </div>
+                            <div class="flex-1 relative">
+                                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-bold">Rp</span>
+                                <input 
+                                    v-model="salePrices[type.id]" 
+                                    type="number" 
+                                    min="0" 
+                                    placeholder="Use base price"
+                                    class="w-full border border-gray-300 rounded-lg bg-white focus:ring-primary focus:border-primary py-2 pl-9 pr-4 text-sm"
+                                >
+                            </div>
+                        </div>
+                        <p v-if="activeSalesTypes.length === 0" class="text-xs text-gray-400 italic">No additional sales types configured.</p>
+                    </div>
+                    <p class="mt-4 text-[10px] text-gray-500 italic">Leave empty to use the standard Base Price for that sales type.</p>
                 </div>
 
                 <div>
@@ -141,7 +190,7 @@
                              <select v-model="item.ingredient_id" class="w-full text-sm border-gray-300 rounded-md focus:ring-primary focus:border-primary">
                                 <option value="" disabled>Select Ingredient</option>
                                 <option v-for="ing in ingredients" :key="ing.id" :value="ing.id">
-                                    {{ ing.name }} ({{ ing.unit }}) - Cost: {{ formatCurrency(ing.cost_per_unit) }}
+                                    {{ ing.name }} ({{ ing.unit ? ing.unit.abbreviation : '-' }}) - Cost: {{ formatCurrency(ing.cost_per_unit) }}
                                 </option>
                             </select>
                         </div>
@@ -160,9 +209,39 @@
                     </div>
                 </div>
 
-                 <div class="border-t border-gray-100 pt-4 flex justify-between items-center bg-green-50 p-4 rounded-lg">
-                    <span class="font-bold text-gray-700">Estimated HPP (Cost of Goods):</span>
-                    <span class="text-xl font-bold text-green-700">{{ formatCurrency(totalHpp) }}</span>
+                 <div class="border-t border-gray-100 pt-4 bg-green-50 p-4 rounded-lg space-y-3">
+                    <div class="flex justify-between items-center">
+                        <span class="font-bold text-gray-700">Estimated HPP (Cost of Goods):</span>
+                        <span class="text-xl font-bold text-green-700">{{ formatCurrency(totalHpp) }}</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="font-bold text-gray-700">Harga Jual (Selling Price):</span>
+                        <span class="text-xl font-bold text-slate-700">{{ formatCurrency(form.price || 0) }}</span>
+                    </div>
+                    <div class="border-t border-green-200 pt-3 flex justify-between items-center">
+                        <span class="font-bold text-gray-700">Margin:</span>
+                        <div class="text-right">
+                            <span 
+                                class="text-xl font-bold"
+                                :class="{
+                                    'text-green-700': marginPercent >= 40,
+                                    'text-yellow-600': marginPercent >= 20 && marginPercent < 40,
+                                    'text-red-600': marginPercent < 20
+                                }"
+                            >
+                                {{ marginPercent !== null ? marginPercent.toFixed(1) + '%' : '-' }}
+                            </span>
+                            <span v-if="marginPercent !== null" class="block text-xs mt-0.5"
+                                :class="{
+                                    'text-green-600': marginPercent >= 40,
+                                    'text-yellow-500': marginPercent >= 20 && marginPercent < 40,
+                                    'text-red-500': marginPercent < 20
+                                }"
+                            >
+                                {{ marginPercent >= 40 ? 'Margin sehat ✓' : marginPercent >= 20 ? 'Margin cukup ⚠' : 'Margin rendah ✗' }}
+                            </span>
+                        </div>
+                    </div>
                 </div>
 
                  <div class="flex justify-end pt-4">
@@ -322,12 +401,13 @@ const form = reactive({
     category_id: '',
     price: '',
     description: '',
-    price: '',
-    description: '',
     is_available: true,
     is_recommended: false,
     is_upsell: false
 });
+
+const activeSalesTypes = ref([]);
+const salePrices = ref({}); // { sales_type_id: price }
 
 const handleImageUpload = (event) => {
     const file = event.target.files[0];
@@ -357,9 +437,20 @@ const fetchIngredients = async () => {
     }
 };
 
-const fetchProduct = async (id) => {
+const fetchActiveSalesTypes = async () => {
     try {
-        const response = await api.get(`/admin/products/${id}`);
+        const response = await api.get('/admin/sales-types');
+        activeSalesTypes.value = response.data.data.filter(t => t.is_active);
+    } catch (error) {
+        console.error("Failed to load sales types");
+    }
+};
+
+const productSlug = ref(null);
+
+const fetchProduct = async (slug) => {
+    try {
+        const response = await api.get(`/admin/products/${slug}`);
         const product = response.data?.data || response.data || {};
         form.name = product.name;
         form.sku = product.sku;
@@ -369,9 +460,17 @@ const fetchProduct = async (id) => {
         form.is_available = !!product.is_available;
         form.is_recommended = !!product.is_recommended;
         form.is_upsell = !!product.is_upsell;
+        productSlug.value = product.slug;
         
         if (product.image_url) {
             previewImage.value = product.image_url;
+        }
+
+        // Populating sale prices
+        if (product.sale_prices) {
+            product.sale_prices.forEach(sp => {
+                salePrices.value[sp.id] = sp.pivot.price;
+            });
         }
     } catch (error) {
         console.error("Failed to load product");
@@ -379,9 +478,9 @@ const fetchProduct = async (id) => {
     }
 };
 
-const fetchRecipe = async (id) => {
+const fetchRecipe = async (slug) => {
     try {
-        const response = await api.get(`/admin/products/${id}/recipe`);
+        const response = await api.get(`/admin/products/${slug}/recipe`);
         const data = response.data?.data || response.data || [];
         // Map pivot data
         recipeList.value = (Array.isArray(data) ? data : []).map(item => ({
@@ -403,9 +502,9 @@ const fetchModifiers = async () => {
     }
 };
 
-const fetchProductModifiers = async (id) => {
+const fetchProductModifiers = async (slug) => {
     try {
-        const response = await api.get(`/admin/products/${id}`);
+        const response = await api.get(`/admin/products/${slug}`);
         const product = response.data?.data || response.data || {};
         if (product.modifiers) {
             selectedModifiers.value = product.modifiers.map(m => {
@@ -429,7 +528,7 @@ const fetchProductModifiers = async (id) => {
 const saveModifiers = async () => {
     loadingModifiers.value = true;
     try {
-        await api.post(`/admin/products/${route.params.id}/modifiers`, {
+        await api.post(`/admin/products/${productSlug.value || route.params.slug}/modifiers`, {
             modifiers: selectedModifiers.value
         });
         toast.success('Modifiers updated successfully!');
@@ -437,6 +536,18 @@ const saveModifiers = async () => {
         toast.error(error.response?.data?.message || 'Failed to save modifiers');
     } finally {
         loadingModifiers.value = false;
+    }
+};
+
+const deleteImage = async () => {
+    if (!confirm('Are you sure you want to delete this image?')) return;
+    try {
+        await api.delete(`/admin/products/${productSlug.value || route.params.slug}/image`);
+        previewImage.value = null;
+        imageFile.value = null;
+        toast.success('Image deleted successfully!');
+    } catch (error) {
+        toast.error(error.response?.data?.message || 'Failed to delete image');
     }
 };
 
@@ -452,29 +563,48 @@ const submitForm = async () => {
         formData.append('is_available', form.is_available ? '1' : '0');
         formData.append('is_recommended', form.is_recommended ? '1' : '0');
         formData.append('is_upsell', form.is_upsell ? '1' : '0');
+
+        // Add sale prices
+        let index = 0;
+        Object.keys(salePrices.value).forEach(salesTypeId => {
+            const price = salePrices.value[salesTypeId];
+            if (price !== null && price !== '' && price !== undefined) {
+                formData.append(`sale_prices[${index}][sales_type_id]`, salesTypeId);
+                formData.append(`sale_prices[${index}][price]`, price);
+                index++;
+            }
+        });
         
         if (imageFile.value) {
             formData.append('image', imageFile.value);
         }
 
-        let productId = route.params.id;
+        const slug = productSlug.value || route.params.slug;
 
         if (isEditing.value) {
             formData.append('_method', 'PUT');
-            await api.post(`/admin/products/${productId}`, formData, {
+            const res = await api.post(`/admin/products/${slug}`, formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
+            // Update slug if name changed
+            const updatedProduct = res.data;
+            if (updatedProduct?.slug && updatedProduct.slug !== slug) {
+                productSlug.value = updatedProduct.slug;
+                router.replace(`/admin/products/${updatedProduct.slug}/edit`);
+            }
             toast.success('Product updated successfully!');
         } else {
             const res = await api.post('/admin/products', formData, {
                  headers: { 'Content-Type': 'multipart/form-data' }
             });
             toast.success('Product created successfully!');
-            // After create, verify if user wants to add recipe immediately logic
-            // Ideally redirect to edit mode or stay here. 
-            // Simple: Redirect to list
-             router.push('/admin/products');
-             return;
+            const newProduct = res.data?.data || res.data;
+            if (newProduct?.slug) {
+                router.push(`/admin/products/${newProduct.slug}/edit`);
+            } else {
+                router.push('/admin/products');
+            }
+            return;
         }
         
     } catch (error) {
@@ -494,7 +624,7 @@ const removeIngredientRow = (index) => {
 
 const getUnit = (ingredientId) => {
     const ing = ingredients.value.find(i => i.id === ingredientId);
-    return ing ? ing.unit : '-';
+    return ing && ing.unit ? ing.unit.abbreviation : '-';
 };
 
 const calculateCost = (item) => {
@@ -507,10 +637,16 @@ const totalHpp = computed(() => {
     return recipeList.value.reduce((total, item) => total + calculateCost(item), 0);
 });
 
+const marginPercent = computed(() => {
+    const sellingPrice = parseFloat(form.price) || 0;
+    if (sellingPrice <= 0 || totalHpp.value <= 0) return null;
+    return ((sellingPrice - totalHpp.value) / sellingPrice) * 100;
+});
+
 const saveRecipe = async () => {
     loadingRecipe.value = true;
     try {
-        await api.post(`/admin/products/${route.params.id}/recipe`, {
+        await api.post(`/admin/products/${productSlug.value || route.params.slug}/recipe`, {
             ingredients: recipeList.value
         });
         toast.success('Recipe updated successfully!');
@@ -598,11 +734,12 @@ onMounted(async () => {
     await fetchCategories();
     await fetchIngredients();
     await fetchModifiers();
-    if (route.params.id) {
+    await fetchActiveSalesTypes();
+    if (route.params.slug) {
         isEditing.value = true;
-        await fetchProduct(route.params.id);
-        await fetchRecipe(route.params.id);
-        await fetchProductModifiers(route.params.id);
+        await fetchProduct(route.params.slug);
+        await fetchRecipe(route.params.slug);
+        await fetchProductModifiers(route.params.slug);
     }
 });
 </script>

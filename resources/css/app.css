@@ -46,8 +46,25 @@
     min-width: 200px !important;
     font-size: 13px !important;
     font-weight: 600 !important;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
 }
 .customer-toast .Vue-Toastification__toast-body {
     padding: 0 !important;
+}
+
+/* Mobile browser viewport fix */
+/* 100vh on mobile includes area behind browser chrome; dvh adjusts dynamically */
+.h-dvh {
+    height: 100dvh;
+}
+.min-h-dvh {
+    min-height: 100dvh;
+}
+
+/* Safe area padding for notch/home-indicator devices */
+.pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+}
+.pt-safe {
+    padding-top: env(safe-area-inset-top);
 }

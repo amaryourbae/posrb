@@ -19,6 +19,7 @@
                         <th class="px-6 py-4 font-semibold text-right">Actual</th>
                         <th class="px-6 py-4 font-semibold text-right">Diff</th>
                         <th class="px-6 py-4 font-semibold text-center">Status</th>
+                        <th class="px-6 py-4 font-semibold text-right">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100 text-sm">
@@ -44,9 +45,14 @@
                                 {{ shift.status }}
                             </span>
                         </td>
+                        <td class="px-6 py-4 text-right">
+                            <router-link :to="`/admin/shifts/${shift.id}`" class="text-primary hover:text-primary-dark font-semibold text-sm">
+                                View Details
+                            </router-link>
+                        </td>
                     </tr>
                     <tr v-if="shifts.data?.length === 0">
-                        <td colspan="8" class="px-6 py-12 text-center text-gray-400">No shift records found</td>
+                        <td colspan="9" class="px-6 py-12 text-center text-gray-400">No shift records found</td>
                     </tr>
                 </tbody>
             </table>

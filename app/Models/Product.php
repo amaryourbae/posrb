@@ -31,6 +31,11 @@ class Product extends Model
         'is_upsell',
     ];
 
+    protected $appends = [
+        'max_yield',
+        'low_stock'
+    ];
+
     protected $casts = [
         'price' => 'decimal:2',
         'current_stock' => 'decimal:2',
@@ -97,5 +102,47 @@ class Product extends Model
             
             return floor($ingredient->current_stock / $ingredient->pivot->quantity_needed);
         });
+    }
+
+    /**
+     * Determine if a product is actually low stock based on its yield
+     */
+    public function getLowStockAttribute()
+    {
+        return $this->max_yield <= $this->minimum_stock_alert;
+    }
+
+    public function salePrices(): BelongsToMany
+    {
+        return $this->belongsToMany(SalesType::class, 'product_sale_prices')
+                    ->using(ProductSalePrice::class)
+                    ->withPivot('price')
+                    ->withTimestamps();
+    }
+
+    /**
+     * Get product price for a specific sales type slug.
+     * Falls back to base price if no custom price is set.
+     */
+    public function getPriceForSalesType(?string $slug): float
+    {
+        if (!$slug) return (float) $this->price;
+
+        $salesType = $this->salePrices->first(function ($st) use ($slug) {
+            return $st->slug === $slug;
+        });
+
+        return $salesType ? (float) $salesType->pivot->price : (float) $this->price;
+    }
+
+    /**
+     * Resolve the route binding for the model.
+     * Supports both ID (ULID) and Slug.
+     */
+    public function resolveRouteBinding($value, $field = null)
+    {
+        return $this->where('id', $value)
+            ->orWhere('slug', $value)
+            ->firstOrFail();
     }
 }

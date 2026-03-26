@@ -86,18 +86,20 @@
             <div class="border-b-2 border-dashed border-gray-200 mb-4"></div>
 
             <!-- Tax -->
-            <div class="space-y-2 mb-4 text-[13px] text-slate-600">
-                <div class="flex justify-between">
-                    <span>Net sales</span>
-                    <span>{{ formatCurrency(order.subtotal - order.discount_amount) }}</span>
+            <template v-if="order.tax_amount > 0">
+                <div class="space-y-2 mb-4 text-[13px] text-slate-600">
+                    <div class="flex justify-between">
+                        <span>Net sales</span>
+                        <span>{{ formatCurrency(order.subtotal - order.discount_amount) }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span>PB1 {{ Math.round((order.tax_amount / (order.grand_total - order.tax_amount)) * 100) || 10 }}%</span>
+                        <span>{{ formatCurrency(order.tax_amount) }}</span>
+                    </div>
                 </div>
-                <div class="flex justify-between">
-                    <span>PB1 {{ Math.round((order.tax_amount / (order.grand_total - order.tax_amount)) * 100) || 10 }}%</span>
-                    <span>{{ formatCurrency(order.tax_amount) }}</span>
-                </div>
-            </div>
 
-            <div class="border-b-2 border-dashed border-gray-200 mb-4"></div>
+                <div class="border-b-2 border-dashed border-gray-200 mb-4"></div>
+            </template>
 
             <!-- Grand Total -->
             <div class="flex justify-between items-center mb-1">
@@ -113,8 +115,9 @@
             <div class="text-center mb-8 px-8">
                 <h3 class="font-medium text-lg text-slate-800 mb-1">Terima Kasih</h3>
                 <p class="text-xs text-slate-500 leading-relaxed">
-                    Dapatkan 1 minuman gratis dan berbagai keuntungan dengan mengumpulkan poin.
+                    {{ settings?.receipt_footer || 'Dapatkan 1 minuman gratis dan berbagai keuntungan dengan mengumpulkan poin.' }}
                 </p>
+                <p class="text-xs text-slate-500 mt-1" v-if="settings?.store_website">{{ settings.store_website }}</p>
             </div>
 
         </main>
@@ -124,7 +127,7 @@
         </main>
 
         <!-- Bottom Actions -->
-        <div class="px-5 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))] bg-white border-t border-gray-100 flex gap-3 z-40 fixed bottom-0 left-0 right-0 mx-auto max-w-md shadow-[0_-4px_20px_rgba(0,0,0,0.03)]" v-if="order">
+        <div class="px-5 pt-4 pb-safe bg-white border-t border-gray-100 flex gap-3 z-40 fixed bottom-0 left-0 right-0 mx-auto max-w-md shadow-[0_-4px_20px_rgba(0,0,0,0.03)]" v-if="order">
             <button @click="downloadPdf" class="flex-1 h-12 rounded-full border border-gray-200 text-slate-700 font-bold text-[14px] flex items-center justify-center gap-2 active:bg-gray-50 transition-colors">
                 <DownloadIcon class="w-4 h-4" />
                 Download
@@ -272,7 +275,7 @@ onMounted(async () => {
     scrollbar-width: none;
 }
 .pb-safe {
-    padding-bottom: env(safe-area-inset-bottom, 20px);
+    padding-bottom: env(safe-area-inset-bottom, 5px);
 }
 @media print {
     header, button, footer, .bottom-actions {

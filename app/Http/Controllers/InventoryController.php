@@ -15,8 +15,9 @@ class InventoryController extends Controller
      */
     public function lowStockAlerts()
     {
-        $alerts = Ingredient::whereColumn('current_stock', '<=', 'minimum_stock_alert')
-            ->select('id', 'name', 'current_stock', 'minimum_stock_alert', 'unit')
+        $alerts = Ingredient::with('unit')
+            ->whereColumn('current_stock', '<=', 'minimum_stock_alert')
+            ->select('id', 'name', 'current_stock', 'minimum_stock_alert', 'unit_id')
             ->get();
             
         return $this->successResponse([

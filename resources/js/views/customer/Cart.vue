@@ -1,9 +1,9 @@
 <template>
-    <div class="min-h-screen bg-gray-50 font-sans text-gray-900 flex justify-center">
-        <div class="w-full max-w-md bg-white min-h-screen shadow-2xl relative flex flex-col">
+    <div class="fixed inset-0 w-full bg-gray-50 font-sans text-gray-900 flex justify-center">
+        <div class="w-full max-w-md bg-white h-full shadow-2xl relative flex flex-col">
             <!-- Top App Bar -->
             <header class="flex-none bg-white px-4 py-3 flex items-center justify-between border-b border-gray-100 shadow-sm z-20 sticky top-0">
-                <router-link to="/app/order" class="size-10 flex items-center justify-center rounded-full hover:bg-gray-50 active:bg-gray-100 transition-colors text-gray-900">
+                <router-link to="/order" class="size-10 flex items-center justify-center rounded-full hover:bg-gray-50 active:bg-gray-100 transition-colors text-gray-900">
                     <ChevronLeftIcon class="w-6 h-6" />
                 </router-link>
                 <h1 class="text-lg font-bold tracking-tight text-gray-900 absolute left-1/2 -translate-x-1/2">My Cart</h1>
@@ -11,7 +11,7 @@
             </header>
 
             <!-- Scrollable Main Content -->
-            <main class="flex-1 overflow-y-auto no-scrollbar pb-32">
+            <main class="flex-1 overflow-y-auto no-scrollbar">
                 <div class="flex flex-col gap-6 p-4">
                     <!-- Loading State -->
                     <div v-if="loading" class="flex flex-col gap-6">
@@ -41,7 +41,7 @@
                         <ShoppingBagIcon class="w-16 h-16 text-gray-300 mb-4" />
                         <h3 class="text-lg font-bold text-gray-900">Your cart is empty</h3>
                         <p class="text-gray-500 text-sm mt-1">Looks like you haven't added anything yet.</p>
-                        <router-link to="/app/order" class="mt-6 px-6 py-2 bg-primary text-white font-bold rounded-lg shadow-lg shadow-primary/20">
+                        <router-link to="/order" class="mt-6 px-6 py-2 bg-primary text-white font-bold rounded-lg shadow-lg shadow-primary/20">
                             Start Ordering
                         </router-link>
                     </div>
@@ -84,7 +84,7 @@
 
                         <!-- Vouchers -->
                         <button 
-                            @click="$router.push('/app/promo')"
+                            @click="$router.push('/promo')"
                             class="w-full bg-white rounded-xl p-4 flex items-center gap-4 shadow-sm border border-gray-100 hover:bg-gray-50 transition-colors group"
                         >
                             <div class="flex items-center justify-center rounded-lg bg-primary/10 text-primary shrink-0 size-10 group-hover:scale-110 transition-transform">
@@ -125,13 +125,13 @@
             </main>
 
             <!-- Fixed Footer -->
-            <footer v-if="cart.length > 0" class="fixed bottom-0 z-30 w-full max-w-md bg-white border-t border-gray-100 p-4 shadow-[0_-4px_20px_-5px_rgba(0,0,0,0.1)]">
+            <footer v-if="cart.length > 0" class="flex-none w-full z-30 bg-white border-t border-gray-100 p-4 pb-safe shadow-[0_-4px_20px_-5px_rgba(0,0,0,0.1)]">
                 <div class="flex gap-4 items-center">
                     <div class="flex flex-col flex-1">
                         <span class="text-xs text-gray-500 font-bold mb-0.5 uppercase tracking-wide">Total Payment</span>
                         <span class="text-xl font-bold text-primary">Rp {{ formatNumber(finalTotal) }}</span>
                     </div>
-                    <router-link to="/app/checkout" class="bg-primary hover:bg-[#4a5c2e] text-white font-bold h-14 px-8 rounded-xl shadow-lg shadow-primary/20 flex items-center gap-2 transition-all active:scale-[0.98] flex-[1.5] justify-center">
+                    <router-link to="/checkout" class="bg-primary hover:bg-[#4a5c2e] text-white font-bold h-14 px-8 rounded-xl shadow-lg shadow-primary/20 flex items-center gap-2 transition-all active:scale-[0.98] flex-[1.5] justify-center">
                         <span>Checkout</span>
                         <ChevronRightIcon class="w-5 h-5" />
                     </router-link>
@@ -168,7 +168,7 @@ onMounted(() => {
 
 <style scoped>
 .pb-safe {
-    padding-bottom: max(env(safe-area-inset-bottom), 1.5rem);
+    padding-bottom: max(env(safe-area-inset-bottom), 5px);
 }
 .no-scrollbar::-webkit-scrollbar {
     display: none;

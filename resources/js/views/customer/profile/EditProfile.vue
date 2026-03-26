@@ -62,7 +62,7 @@
         </main>
 
         <!-- Sticky Bottom Button -->
-        <div class="fixed bottom-0 left-0 right-0 px-5 py-4 bg-white border-t border-gray-100 max-w-md mx-auto z-40">
+        <div class="fixed bottom-0 left-0 right-0 px-5 py-4 pb-safe bg-white border-t border-gray-100 max-w-md mx-auto z-40">
             <button 
                 @click="saveProfile" 
                 :disabled="loading"
@@ -135,7 +135,7 @@ const saveProfile = async () => {
 
 <style scoped>
 .pb-safe {
-    padding-bottom: env(safe-area-inset-bottom, 20px);
+    padding-bottom: env(safe-area-inset-bottom, 5px);
 }
 .no-scrollbar::-webkit-scrollbar {
     display: none;

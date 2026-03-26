@@ -1,8 +1,9 @@
 <template>
-    <div class="h-screen w-full flex justify-center bg-gray-100 overflow-hidden font-sans relative">
+    <div class="fixed inset-0 w-full flex justify-center bg-white overflow-hidden font-sans">
+        <div class="w-full max-w-md h-full flex flex-col relative">
         
         <!-- Sticky Header & Buttons -->
-        <div class="absolute top-0 z-50 w-full max-w-md pointer-events-none transition-all duration-300">
+        <div class="absolute top-0 z-50 w-full pointer-events-none transition-all duration-300">
             <!-- Solid Background Layer -->
             <div class="absolute inset-0 bg-white shadow-sm transition-opacity duration-300" :style="{ opacity: headerOpacity }"></div>
             
@@ -27,7 +28,7 @@
         </div>
 
         <!-- Scroll Container -->
-        <div ref="scrollContainer" @scroll="handleScroll" class="w-full max-w-md h-full overflow-y-auto relative bg-gray-100 scroll-smooth shadow-2xl [&::-webkit-scrollbar]:hidden">
+        <div ref="scrollContainer" @scroll="handleScroll" class="flex-1 overflow-y-auto relative bg-white scroll-smooth shadow-2xl [&::-webkit-scrollbar]:hidden">
             
             <!-- Sticky Hero Image (Parallax) -->
             <div class="sticky top-0 w-full h-96 z-0 shrink-0 overflow-hidden">
@@ -39,7 +40,7 @@
             </div>
 
             <!-- Content Sheet -->
-            <div v-if="product" class="relative z-10 bg-white rounded-t-[2.5rem] min-h-screen -mt-20 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] flex flex-col overflow-hidden">
+            <div v-if="product" class="relative z-10 bg-white rounded-t-[2.5rem] min-h-[calc(100dvh-19rem)] -mt-20 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] flex flex-col overflow-hidden">
 
                 <!-- Drag Handle -->
                 <div class="flex justify-center pt-3 pb-1 opacity-50">
@@ -50,14 +51,14 @@
                     <!-- Title & Price -->
                     <div class="flex flex-col gap-2 pb-6">
                         <h1 class="text-2xl font-bold tracking-tight text-gray-900 leading-tight transition-all duration-300">{{ displayProductName }}</h1>
-                        <span class="text-2xl font-bold text-primary">Rp {{ formatNumber(product.price) }}</span>
+                        <span class="text-2xl font-bold text-primary">Rp {{ formatNumber(store.resolveProductPrice(product)) }}</span>
                         <p class="text-sm text-gray-500 font-medium leading-relaxed mt-1">
                             {{ product.description || 'No description available.' }}
                         </p>
                     </div>
                     
                     <!-- Main Section Divider -->
-                    <div class="h-2 bg-gray-100 -mx-6 mb-6"></div>
+                    <div v-if="visibleModifiers && visibleModifiers.length > 0" class="h-2 bg-gray-100 -mx-6 mb-6"></div>
 
                     <!-- Dynamic Modifiers -->
                     <template v-for="(modifier, index) in visibleModifiers" :key="modifier.id">
@@ -99,7 +100,7 @@
                                         <input v-model="selectedModifiers[modifier.id]" class="peer sr-only" :name="`modifier_${modifier.id}`" type="radio" :value="option.id"/>
                                         <div class="flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 text-gray-500 hover:text-gray-900 peer-checked:bg-white peer-checked:text-primary peer-checked:shadow-sm">
                                             <span>{{ option.name }}</span>
-                                            <span v-if="parseFloat(option.price) > 0" class="text-xs font-medium opacity-80">(+{{ formatNumber(option.price) }})</span>
+                                            <span v-if="store.resolveModifierPrice(option) > 0" class="text-xs font-medium opacity-80">(+{{ formatNumber(store.resolveModifierPrice(option)) }})</span>
                                         </div>
                                     </label>
                                 </div>
@@ -112,7 +113,7 @@
                                             border-gray-200 text-gray-600 bg-white hover:border-gray-300
                                             peer-checked:border-primary peer-checked:bg-primary/5 peer-checked:text-primary">
                                             {{ option.name }}
-                                            <span v-if="parseFloat(option.price) > 0" class="text-xs block opacity-80">+{{ formatNumber(option.price) }}</span>
+                                            <span v-if="store.resolveModifierPrice(option) > 0" class="text-xs block opacity-80">+{{ formatNumber(store.resolveModifierPrice(option)) }}</span>
                                         </div>
                                     </label>
                                 </div>
@@ -125,7 +126,7 @@
                                         {{ option.name }}
                                     </div>
                                     <div class="flex items-center gap-3">
-                                        <span v-if="parseFloat(option.price) > 0" class="text-sm font-medium text-gray-500">+Rp {{ formatNumber(option.price) }}</span>
+                                        <span v-if="store.resolveModifierPrice(option) > 0" class="text-sm font-medium text-gray-500">+Rp {{ formatNumber(store.resolveModifierPrice(option)) }}</span>
                                         
                                         <!-- Custom Radio Circle -->
                                         <div class="relative flex items-center justify-center w-6 h-6">
@@ -147,73 +148,26 @@
                                         <input v-model="selectedModifiers[modifier.id]" class="w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary/20 accent-primary" type="checkbox" :value="option.id"/>
                                         <span class="text-sm font-medium text-gray-700">{{ option.name }}</span>
                                     </div>
-                                    <span v-if="parseFloat(option.price) > 0" class="text-sm font-semibold text-primary">+Rp {{ formatNumber(option.price) }}</span>
+                                    <span v-if="store.resolveModifierPrice(option) > 0" class="text-sm font-semibold text-primary">+Rp {{ formatNumber(store.resolveModifierPrice(option)) }}</span>
                                 </label>
                             </div>
                         </div>
                     </template>
 
-                    <!-- Legacy Fallback -->
-                    <template v-if="!product.modifiers || product.modifiers.length === 0">
-                        <!-- Size -->
-                        <div class="flex flex-col gap-3">
-                            <h3 class="text-lg font-bold text-gray-900 flex items-center gap-2">
-                                Size <span class="text-xs font-normal text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">Required</span>
-                            </h3>
-                            <div class="bg-gray-100/80 p-1.5 rounded-xl flex">
-                                <label class="relative flex-1 cursor-pointer group">
-                                    <input v-model="form.size" class="peer sr-only" name="size" type="radio" value="regular"/>
-                                    <div class="flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 text-gray-500 hover:text-gray-900 peer-checked:bg-white peer-checked:text-[#5a6c37] peer-checked:shadow-sm">
-                                        <span>Regular</span>
-                                    </div>
-                                </label>
-                                <label class="relative flex-1 cursor-pointer group">
-                                    <input v-model="form.size" class="peer sr-only" name="size" type="radio" value="large"/>
-                                    <div class="flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 text-gray-500 hover:text-gray-900 peer-checked:bg-white peer-checked:text-[#5a6c37] peer-checked:shadow-sm">
-                                        <span>Large</span>
-                                        <span class="text-xs font-medium opacity-80">(+Rp 5.000)</span>
-                                    </div>
-                                </label>
-                            </div>
-                        </div>
-                        <!-- Ice -->
-                        <div class="flex flex-col gap-3">
-                            <h3 class="text-lg font-bold text-gray-900">Ice Level</h3>
-                            <div class="bg-gray-100/80 p-1.5 rounded-xl flex">
-                                <label v-for="level in ['Normal', 'Less', 'No Ice']" :key="level" class="relative flex-1 cursor-pointer group">
-                                    <input v-model="form.ice" class="peer sr-only" name="ice" type="radio" :value="level"/>
-                                    <div class="flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 text-gray-500 hover:text-gray-900 peer-checked:bg-white peer-checked:text-[#5a6c37] peer-checked:shadow-sm">
-                                        {{ level }}
-                                    </div>
-                                </label>
-                            </div>
-                        </div>
-                        <!-- Sugar -->
-                        <div class="flex flex-col gap-3">
-                            <h3 class="text-lg font-bold text-gray-900">Sugar Level</h3>
-                            <div class="bg-gray-100/80 p-1.5 rounded-xl flex">
-                                <label v-for="level in ['Normal', 'Less', 'No Sugar']" :key="level" class="relative flex-1 cursor-pointer group">
-                                    <input v-model="form.sugar" class="peer sr-only" name="sugar" type="radio" :value="level"/>
-                                    <div class="flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 text-gray-500 hover:text-gray-900 peer-checked:bg-white peer-checked:text-[#5a6c37] peer-checked:shadow-sm">
-                                        {{ level }}
-                                    </div>
-                                </label>
-                            </div>
-                        </div>
-                    </template>
+                    <!-- No modifiers fallback removed. Will just show name, price, and description. -->
                 </div>
             </div>
         </div>
 
         <!-- Fixed Footer -->
-        <div class="absolute bottom-0 z-50 w-full max-w-md pointer-events-none left-0 right-0 mx-auto">
+        <div class="flex-none w-full z-50">
              <!-- Points Banner -->
-             <div class="bg-[#fcfdf5] border-t border-[#e8eddf] py-2.5 px-4 flex items-center gap-2 justify-start pointer-events-auto">
+             <div class="bg-[#fcfdf5] border-t border-[#e8eddf] py-2.5 px-4 flex items-center gap-2 justify-start">
                  <img src="/point.png" class="w-5 h-5 object-contain" alt="Point" />
                  <span class="text-xs font-bold text-[#3f4d25]">Kamu berpotensi mendapatkan 2 Poin</span>
              </div>
 
-             <div class="bg-white border-t border-gray-100 p-4 shadow-[0_-4px_30px_rgba(0,0,0,0.08)] pointer-events-auto">
+             <div class="bg-white border-t border-gray-100 p-4 pb-safe shadow-[0_-4px_30px_rgba(0,0,0,0.08)]">
                 <div class="flex items-center gap-4">
                     <div class="flex items-center gap-3 bg-gray-50 rounded-xl px-4 py-2 border border-gray-100 h-14 w-32 justify-between">
                         <button @click="quantity > 1 ? quantity-- : null" class="w-8 h-8 flex items-center justify-center rounded-full bg-white shadow-sm border border-gray-100 text-gray-600 hover:text-primary transition-all disabled:opacity-50 active:scale-95" :disabled="quantity <= 1">
@@ -225,7 +179,7 @@
                         </button>
                     </div>
                     <button @click="addToCart" class="flex-1 h-14 bg-[#5a6c37] text-white rounded-xl flex items-center justify-between px-6 font-bold shadow-lg shadow-[#5a6c37]/25 active:scale-[0.98] transition-all hover:bg-[#4a5c2e]">
-                        <span>{{ isEditing ? 'Update' : 'Tambah' }} - </span>
+                        <span>{{ isEditing ? 'Update' : 'Add' }} - </span>
                         <span>Rp {{ formatNumber(totalPrice) }}</span>
                     </button>
                 </div>
@@ -239,6 +193,7 @@
             @view-cart="handleViewCart"
             @update-item="handleUpdateItem"
         />
+        </div>
     </div>
 </template>
 
@@ -283,13 +238,7 @@ const handleScroll = (e) => {
     headerOpacity.value = progress;
 };
 
-// Legacy form for products without dynamic modifiers
-const form = reactive({
-    size: 'regular',
-    ice: 'Normal',
-    sugar: 'Normal',
-    sugar: 'Normal'
-});
+
 
 const formatNumber = (num) => new Intl.NumberFormat('id-ID').format(num);
 
@@ -384,7 +333,7 @@ const visibleModifiers = computed(() => {
 
 const totalPrice = computed(() => {
     if (!product.value) return 0;
-    let base = parseFloat(product.value.price);
+    let base = parseFloat(store.resolveProductPrice(product.value));
     
     // If product has dynamic modifiers, calculate from selectedModifiers
     if (product.value.modifiers && product.value.modifiers.length > 0) {
@@ -392,17 +341,14 @@ const totalPrice = computed(() => {
             const selection = selectedModifiers[modifier.id];
             if (modifier.type === 'radio' && selection) {
                 const option = modifier.options.find(o => o.id === selection);
-                if (option) base += parseFloat(option.price) || 0;
+                if (option) base += parseFloat(store.resolveModifierPrice(option)) || 0;
             } else if (modifier.type === 'checkbox' && Array.isArray(selection)) {
                 selection.forEach(optId => {
                     const option = modifier.options.find(o => o.id === optId);
-                    if (option) base += parseFloat(option.price) || 0;
+                    if (option) base += parseFloat(store.resolveModifierPrice(option)) || 0;
                 });
             }
         });
-    } else {
-        // Legacy calculation
-        if (form.size === 'large') base += 5000;
     }
     
     return base * quantity.value;
@@ -419,12 +365,14 @@ const addToCart = () => {
             if (modifier.type === 'radio' && selection) {
                 const option = modifier.options.find(o => o.id === selection);
                 if (option) {
+                    // Store the whole option object so store can re-resolve price if order type changes
                     modifiersSnapshot.push({
+                        ...option,
                         modifier_id: modifier.id,
                         modifier_name: modifier.name,
-                        option_id: option.id,
-                        option_name: option.name,
-                        price: parseFloat(option.price) || 0,
+                        option_id: option.id, // for consistency
+                        option_name: option.name, // for consistency
+                        price: store.resolveModifierPrice(option),
                         is_default: modifier.options[0].id === option.id
                     });
                 }
@@ -433,11 +381,12 @@ const addToCart = () => {
                     const option = modifier.options.find(o => o.id === optId);
                     if (option) {
                         modifiersSnapshot.push({
+                            ...option,
                             modifier_id: modifier.id,
                             modifier_name: modifier.name,
                             option_id: option.id,
                             option_name: option.name,
-                            price: parseFloat(option.price) || 0
+                            price: store.resolveModifierPrice(option)
                         });
                     }
                 });
@@ -447,11 +396,7 @@ const addToCart = () => {
     
     const newCartId = store.addToCart(product.value, {
         quantity: quantity.value,
-        modifiers: modifiersSnapshot,
-        // Legacy fields for backward compatibility
-        size: form.size,
-        ice: form.ice,
-        sugar: form.sugar
+        modifiers: modifiersSnapshot
     });
 
     if (isEditing.value && route.query.cartId && route.query.cartId !== newCartId) {
@@ -506,7 +451,7 @@ const handleContinueShopping = () => {
 
 const handleViewCart = () => {
     showSuccessModal.value = false;
-    router.push('/app/checkout');
+    router.push('/checkout');
 };
 
 onMounted(async () => {
@@ -536,10 +481,6 @@ onMounted(async () => {
                         }
                     });
                 }
-                // Legacy fields
-                if (item.size) form.size = item.size;
-                if (item.ice) form.ice = item.ice;
-                if (item.sugar) form.sugar = item.sugar;
             }
         }
     }
@@ -560,6 +501,6 @@ const toggleFavorite = () => {
 
 <style scoped>
 .pb-safe {
-    padding-bottom: max(env(safe-area-inset-bottom), 1.5rem);
+    padding-bottom: max(env(safe-area-inset-bottom), 5px);
 }
 </style>

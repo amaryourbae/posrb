@@ -7,7 +7,13 @@
                 Transaction History
             </h1>
             <div class="flex space-x-2">
-                <!-- Date Filter could go here -->
+                <button
+                    @click="exportToExcel"
+                    class="flex items-center px-4 py-2 bg-green-600 text-white rounded-xl shadow-sm hover:bg-green-700 transition-colors font-bold text-sm"
+                >
+                    <DownloadIcon class="w-4 h-4 mr-2" />
+                    Export Excel
+                </button>
             </div>
         </div>
 
@@ -83,23 +89,64 @@
                         class="pl-10 border-gray-300 rounded-xl text-sm focus:ring-primary focus:border-primary w-full md:w-80 py-2.5 shadow-sm"
                     />
                 </div>
-                <select
-                    v-model="filterPeriod"
-                    @change="fetchOrders"
-                    class="border-gray-300 rounded-xl text-sm focus:ring-primary focus:border-primary py-2.5 shadow-sm w-full md:w-auto"
-                >
-                    <option value="all">Semua Periode</option>
-                    <option value="today">Hari Ini</option>
-                    <option value="week">Minggu Ini</option>
-                    <option value="month">Bulan Ini</option>
-                    <option value="year">Tahun Ini</option>
-                </select>
+                <div class="flex items-center gap-2">
+                    <button 
+                        @click="navigateDate(-1)"
+                        class="p-2.5 bg-white border border-gray-300 rounded-xl hover:bg-gray-50 text-gray-600 shadow-sm transition-all"
+                        title="Previous Day"
+                    >
+                        <ChevronLeftIcon class="w-4 h-4" />
+                    </button>
+
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                            <CalendarIcon class="w-4 h-4 text-gray-400" />
+                        </span>
+                        <select
+                            v-model="filterPeriod"
+                            @change="onPeriodChange"
+                            class="pl-9 pr-10 border-gray-300 rounded-xl text-sm focus:ring-primary focus:border-primary py-2.5 shadow-sm w-full md:w-auto appearance-none bg-white font-medium"
+                        >
+                            <option value="all">Semua Periode</option>
+                            <option value="today">Hari Ini</option>
+                            <option value="yesterday">Kemarin</option>
+                            <option value="week">Minggu Ini</option>
+                            <option value="month">Bulan Ini</option>
+                            <option value="custom">Pilih Tanggal...</option>
+                        </select>
+                    </div>
+
+                    <button 
+                        @click="navigateDate(1)"
+                        class="p-2.5 bg-white border border-gray-300 rounded-xl hover:bg-gray-50 text-gray-600 shadow-sm transition-all"
+                        title="Next Day"
+                    >
+                        <ChevronRightIcon class="w-4 h-4" />
+                    </button>
+                </div>
+
+                <div v-if="filterPeriod === 'custom'" class="flex items-center gap-2 animate-in fade-in slide-in-from-left-2 duration-300">
+                    <input 
+                        type="date"
+                        v-model="startDate"
+                        @change="fetchOrders(1)"
+                        class="border-gray-300 rounded-xl text-sm focus:ring-primary focus:border-primary py-2 shadow-sm"
+                    />
+                    <span class="text-gray-400">ke</span>
+                    <input 
+                        type="date"
+                        v-model="endDate"
+                        @change="fetchOrders(1)"
+                        class="border-gray-300 rounded-xl text-sm focus:ring-primary focus:border-primary py-2 shadow-sm"
+                    />
+                </div>
+
                 <select
                     v-model="filterStatus"
-                    @change="fetchOrders"
-                    class="border-gray-300 rounded-xl text-sm focus:ring-primary focus:border-primary py-2.5 shadow-sm w-full md:w-auto"
+                    @change="fetchOrders(1)"
+                    class="border-gray-300 rounded-xl text-sm focus:ring-primary focus:border-primary py-2.5 shadow-sm w-full md:w-auto font-medium"
                 >
-                    <option value="all">All Status</option>
+                    <option value="all">Semua Status</option>
                     <option value="paid">Paid</option>
                     <option value="pending">Pending</option>
                     <option value="failed">Failed</option>
@@ -458,7 +505,7 @@
 <script setup>
 import { ref, onMounted } from "vue";
 import MainLayout from "../../../components/layout/MainLayout.vue";
-import { SearchIcon, XIcon, ClipboardListIcon } from "lucide-vue-next";
+import { SearchIcon, XIcon, ClipboardListIcon, DownloadIcon, ChevronLeftIcon, ChevronRightIcon, CalendarIcon, TagIcon } from "lucide-vue-next";
 import api from "../../../api/axios";
 import { useToast } from "vue-toastification";
 import { useProductDisplay } from "../../../composables/useProductDisplay";
@@ -472,7 +519,9 @@ const orders = ref({ data: [] });
 const stats = ref({ total_orders: 0, total_collected: 0, total_net_sales: 0 });
 const search = ref("");
 const filterStatus = ref("all");
-const filterPeriod = ref("all");
+const filterPeriod = ref("today"); // Default to today as requested
+const startDate = ref(dateFormat(new Date(), "yyyy-MM-dd"));
+const endDate = ref(dateFormat(new Date(), "yyyy-MM-dd"));
 const pageLoading = ref(true);
 const selectedOrder = ref(null);
 
@@ -486,6 +535,8 @@ const fetchOrders = async (page = 1) => {
                 search: search.value,
                 status: filterStatus.value,
                 period: filterPeriod.value,
+                start_date: filterPeriod.value === 'custom' || filterPeriod.value === 'today' || filterPeriod.value === 'yesterday' ? startDate.value : null,
+                end_date: filterPeriod.value === 'custom' || filterPeriod.value === 'today' || filterPeriod.value === 'yesterday' ? endDate.value : null,
             },
         });
         const data = response.data?.data || response.data || {};
@@ -498,6 +549,79 @@ const fetchOrders = async (page = 1) => {
         toast.error("Failed to load orders");
     } finally {
         pageLoading.value = false;
+    }
+};
+
+const onPeriodChange = () => {
+    if (filterPeriod.value === 'today') {
+        const today = dateFormat(new Date(), "yyyy-MM-dd");
+        startDate.value = today;
+        endDate.value = today;
+    } else if (filterPeriod.value === 'yesterday') {
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        const yStr = dateFormat(yesterday, "yyyy-MM-dd");
+        startDate.value = yStr;
+        endDate.value = yStr;
+    }
+    fetchOrders(1);
+};
+
+const navigateDate = (offset) => {
+    // If not in a single day view, switch to custom or today
+    if (filterPeriod.value !== 'today' && filterPeriod.value !== 'yesterday' && filterPeriod.value !== 'custom') {
+        filterPeriod.value = 'custom';
+    }
+
+    const current = new Date(startDate.value);
+    current.setDate(current.getDate() + offset);
+    const dateStr = dateFormat(current, "yyyy-MM-dd");
+    
+    startDate.value = dateStr;
+    endDate.value = dateStr;
+    
+    // Update period label if it matches today or yesterday
+    const today = dateFormat(new Date(), "yyyy-MM-dd");
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = dateFormat(yesterday, "yyyy-MM-dd");
+
+    if (dateStr === today) {
+        filterPeriod.value = 'today';
+    } else if (dateStr === yesterdayStr) {
+        filterPeriod.value = 'yesterday';
+    } else {
+        filterPeriod.value = 'custom';
+    }
+
+    fetchOrders(1);
+};
+
+const exportToExcel = async () => {
+    try {
+        toast.info("Preparing export...");
+        const response = await api.get("/admin/orders/export", {
+            params: {
+                search: search.value,
+                status: filterStatus.value,
+                period: filterPeriod.value,
+                start_date: startDate.value,
+                end_date: endDate.value,
+            },
+            responseType: 'blob'
+        });
+
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `orders_report_${startDate.value}_to_${endDate.value}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        toast.success("Export successful");
+    } catch (e) {
+        console.error("Export failed", e);
+        toast.error("Failed to export data");
     }
 };
 

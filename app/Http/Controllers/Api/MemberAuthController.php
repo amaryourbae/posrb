@@ -161,6 +161,7 @@ class MemberAuthController extends Controller
         $request->validate(['phone' => 'required']);
         $phone = $this->formatPhone($request->phone);
         
+        
         $exists = Customer::where('phone', $phone)->exists();
         if ($exists) {
             return $this->errorResponse('Phone number already registered', 422);
@@ -168,6 +169,98 @@ class MemberAuthController extends Controller
         
         // If available, send OTP
         return $this->sendOtp($request);
+    }
+
+    /**
+     * Handle Social Login (Google / Apple)
+     */
+    public function socialLogin(Request $request)
+    {
+        $request->validate([
+            'provider' => 'required|in:google,apple',
+            'token' => 'required|string',
+            'email' => 'nullable|email', // Apple sometimes doesn't send email on every login
+            'name' => 'nullable|string',
+        ]);
+
+        $provider = $request->provider;
+        $providerId = null;
+        $email = $request->email;
+        $name = $request->name;
+
+        try {
+            if ($provider === 'google') {
+                $client = new \Google\Client(['client_id' => config('services.google.client_id')]);
+                $payload = $client->verifyIdToken($request->token);
+                if ($payload) {
+                    $providerId = $payload['sub'];
+                    $email = $payload['email'];
+                    $name = $name ?? $payload['name'];
+                } else {
+                    return $this->errorResponse('Invalid Google Token', 400);
+                }
+            } else if ($provider === 'apple') {
+                 $providerId = $request->token; 
+                 $tokenParts = explode(".", $request->token);
+                 if (count($tokenParts) === 3) {
+                     $payload = json_decode(base64_decode($tokenParts[1]), true);
+                     if (isset($payload['sub'])) {
+                         $providerId = $payload['sub'];
+                     }
+                     if (isset($payload['email'])) {
+                         $email = $payload['email'];
+                     }
+                 }
+                 
+                 if (!$providerId) {
+                     return $this->errorResponse('Invalid Apple Token', 400);
+                 }
+            }
+
+            // Find existing user by provider_id
+            $customer = Customer::where('provider_name', $provider)
+                                ->where('provider_id', $providerId)
+                                ->first();
+
+            // If not found by provider_id, check by email to link accounts
+            if (!$customer && $email) {
+                 $customer = Customer::where('email', $email)->first();
+                 if ($customer) {
+                     // Link account
+                     $customer->update([
+                         'provider_name' => $provider,
+                         'provider_id' => $providerId
+                     ]);
+                 }
+            }
+
+            // If still not found, create new customer
+            if (!$customer) {
+                // If name is missing from provider (e.g. Apple subsequent logins), provide fallback
+                $customerName = $name ?? explode('@', $email)[0] ?? 'User';
+                
+                $customer = Customer::create([
+                    'name' => $customerName,
+                    'email' => $email, // email could be null
+                    'provider_name' => $provider,
+                    'provider_id' => $providerId,
+                    'points_balance' => 0,
+                    // phone is nullable now
+                ]);
+            }
+
+            // Generate Token
+            $token = $customer->createToken('member_token')->plainTextToken;
+
+            return $this->successResponse([
+                'token' => $token,
+                'user' => $customer
+            ], 'Login successful');
+
+        } catch (\Exception $e) {
+            Log::error('Social Login Error: ' . $e->getMessage());
+            return $this->errorResponse('Authentication failed: ' . $e->getMessage(), 500);
+        }
     }
 
     public function logout(Request $request)

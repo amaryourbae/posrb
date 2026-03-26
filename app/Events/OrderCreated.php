@@ -35,4 +35,14 @@ class OrderCreated implements ShouldBroadcast
             new Channel('orders'),
         ];
     }
+
+    /**
+     * The event's broadcast name.
+     *
+     * @return string
+     */
+    public function broadcastAs(): string
+    {
+        return 'OrderCreated';
+    }
 }

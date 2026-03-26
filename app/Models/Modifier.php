@@ -20,7 +20,9 @@ class Modifier extends Model
 
     public function options(): HasMany
     {
-        return $this->hasMany(ModifierOption::class)->orderBy('sort_order');
+        $relation = $this->hasMany(ModifierOption::class);
+        $relation->getQuery()->orderBy('sort_order');
+        return $relation;
     }
 
     public function products(): BelongsToMany

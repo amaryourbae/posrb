@@ -163,7 +163,7 @@ const submitOtp = async () => {
             position: "top-left",
             toastClassName: "customer-toast"
         });
-        router.push('/app'); 
+        router.push('/'); 
     } catch (e) {
         console.error("OTP Verification Error:", e);
 

@@ -23,27 +23,27 @@ class DashboardController extends Controller
         
         // 1. Total Sales Today (Grand Total of 'completed' or 'paid' orders?)
         // Assuming 'payment_status'='paid' is the key metric for confirmed revenue.
-        $totalSalesToday = Order::whereDate('created_at', $today)
-            ->where('payment_status', 'paid')
+        $totalSalesToday = Order::whereDate('created_at', '=', $today, 'and')
+            ->where('payment_status', '=', 'paid', 'and')
             ->sum('grand_total');
             
         // 2. Transaction Count Today
-        $transactionCountToday = Order::whereDate('created_at', $today)
-            ->where('payment_status', 'paid')
+        $transactionCountToday = Order::whereDate('created_at', '=', $today, 'and')
+            ->where('payment_status', '=', 'paid', 'and')
             ->count();
             
         // 3. Low Stock Count
-        $lowStockCount = Ingredient::whereColumn('current_stock', '<=', 'minimum_stock_alert')->count();
+        $lowStockCount = Ingredient::whereColumn('current_stock', '<=', 'minimum_stock_alert', 'and')->count();
         
         // 4. New Members Count (This Month)
-        $newMembersCount = Customer::whereMonth('created_at', Carbon::now()->month)
-            ->whereYear('created_at', Carbon::now()->year)
+        $newMembersCount = Customer::whereMonth('created_at', '=', Carbon::now()->month, 'and')
+            ->whereYear('created_at', '=', Carbon::now()->year, 'and')
             ->count();
             
         // 5. Sales Trend (Last 7 Days)
         $sevenDaysAgo = Carbon::today()->subDays(6);
-        $salesTrendData = Order::whereDate('created_at', '>=', $sevenDaysAgo)
-            ->where('payment_status', 'paid')
+        $salesTrendData = Order::whereDate('created_at', '>=', $sevenDaysAgo, 'and')
+            ->where('payment_status', '=', 'paid', 'and')
             ->select(
                 DB::raw('DATE(created_at) as date'), 
                 DB::raw('SUM(grand_total) as total')
@@ -63,7 +63,7 @@ class DashboardController extends Controller
 
         // 6. Recent Orders (Limit 5)
         $recentOrders = Order::with('customer')
-            ->where('payment_status', 'paid')
+            ->where('payment_status', '=', 'paid', 'and')
             ->orderBy('created_at', 'desc')
             ->limit(5)
             ->get();
@@ -73,7 +73,7 @@ class DashboardController extends Controller
             ->join('orders', 'orders.id', '=', 'order_items.order_id')
             ->join('products', 'products.id', '=', 'order_items.product_id') // Join products table
             ->leftJoin('categories', 'categories.id', '=', 'products.category_id') // Join categories for category name
-            ->where('orders.payment_status', 'paid')
+            ->where('orders.payment_status', '=', 'paid', 'and')
             ->select(
                 'products.id',
                 'products.name',
@@ -106,23 +106,23 @@ class DashboardController extends Controller
         $today = Carbon::today();
 
         // 1. My Sales Today (Paid)
-        $mySalesToday = Order::where('user_id', $user->id)
-            ->whereDate('created_at', $today)
-            ->where('payment_status', 'paid')
+        $mySalesToday = Order::where('user_id', '=', $user->id, 'and')
+            ->whereDate('created_at', '=', $today, 'and')
+            ->where('payment_status', '=', 'paid', 'and')
             ->sum('grand_total');
 
         // 2. My Transaction Count Today
-        $myTransactionCount = Order::where('user_id', $user->id)
-            ->whereDate('created_at', $today)
-            ->where('payment_status', 'paid')
+        $myTransactionCount = Order::where('user_id', '=', $user->id, 'and')
+            ->whereDate('created_at', '=', $today, 'and')
+            ->where('payment_status', '=', 'paid', 'and')
             ->count();
 
         // 3. Pending Orders (Global - relevant for queue)
-        $pendingCount = Order::where('payment_status', 'pending')
+        $pendingCount = Order::where('payment_status', '=', 'pending', 'and')
             ->count();
         
         // 4. Low Stock Count (Global)
-        $lowStockCount = Ingredient::whereColumn('current_stock', '<=', 'minimum_stock_alert')->count();
+        $lowStockCount = Ingredient::whereColumn('current_stock', '<=', 'minimum_stock_alert', 'and')->count();
 
         return $this->successResponse([
             'today_sales' => (float) $mySalesToday,

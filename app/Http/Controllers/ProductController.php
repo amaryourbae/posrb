@@ -17,21 +17,21 @@ class ProductController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Product::with(['category', 'modifiers.options'])->latest();
+        $query = Product::with(['category', 'modifiers.options.salePrices', 'salePrices'])->latest();
         
         if ($request->filled('category_id')) {
-            $query->where('category_id', $request->category_id);
+            $query->where('category_id', '=', $request->category_id, 'and');
         }
 
-        if ($request->has('is_recommended')) {
-            $query->where('is_recommended', $request->boolean('is_recommended'));
+        if ($request->filled('is_recommended')) {
+            $query->where('is_recommended', '=', $request->boolean('is_recommended'), 'and');
         }
 
-        if ($request->has('is_upsell')) {
-            $query->where('is_upsell', $request->boolean('is_upsell'));
+        if ($request->filled('is_upsell')) {
+            $query->where('is_upsell', '=', $request->boolean('is_upsell'), 'and');
         }
 
-        if ($request->has('search')) {
+        if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
@@ -54,11 +54,12 @@ class ProductController extends Controller
             'name' => 'required|string|max:255',
             'sku' => 'required|string|unique:products,sku',
             'price' => 'required|numeric|min:0',
-            'image' => 'nullable|image|max:2048', // Max 2MB
+            'image' => 'nullable|image|max:2048',
             'description' => 'nullable|string',
-            'is_available' => 'boolean',
-            'is_recommended' => 'boolean',
-            'is_upsell' => 'boolean'
+            'is_upsell' => 'boolean',
+            'sale_prices' => 'nullable|array',
+            'sale_prices.*.sales_type_id' => 'required|exists:sales_types,id',
+            'sale_prices.*.price' => 'required|numeric|min:0'
         ]);
 
         $imageUrl = null;
@@ -74,7 +75,7 @@ class ProductController extends Controller
             'slug' => Str::slug($request->name) . '-' . Str::random(6),
             'description' => $request->description,
             'price' => $request->price,
-            'current_stock' => $request->input('current_stock', 0),
+            'current_stock' => $request->input('current_stock', 100),
             'minimum_stock_alert' => $request->input('minimum_stock_alert', 10),
             'image_url' => $imageUrl,
             'is_available' => $request->input('is_available', true),
@@ -83,6 +84,14 @@ class ProductController extends Controller
             'has_recipe' => false,
             'track_stock' => true
         ]);
+
+        if ($request->has('sale_prices')) {
+            $syncData = [];
+            foreach ($request->sale_prices as $item) {
+                $syncData[$item['sales_type_id']] = ['price' => $item['price']];
+            }
+            $product->salePrices()->sync($syncData);
+        }
         
         \App\Helpers\LogHelper::log('product.created', "Created product {$product->name}", $product);
 
@@ -94,29 +103,29 @@ class ProductController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(string $id)
+    public function show(Product $product)
     {
-        $product = Product::with(['category', 'modifiers.options'])->findOrFail($id);
-        return $this->successResponse($product);
+        return $this->successResponse($product->load(['category', 'modifiers.options', 'salePrices']));
     }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id)
+    public function update(Request $request, Product $product)
     {
-        $product = Product::findOrFail($id);
-
         $request->validate([
             'category_id' => 'nullable|exists:categories,id', // Allow null/empty to skip or set null
             'name' => 'string|max:255',
-            'sku' => 'string|unique:products,sku,' . $id,
+            'sku' => 'string|unique:products,sku,' . $product->id,
             'price' => 'numeric|min:0',
             'image' => 'nullable|image|max:2048',
             'description' => 'nullable|string',
             'is_available' => 'boolean',
             'is_recommended' => 'boolean',
-            'is_upsell' => 'boolean'
+            'is_upsell' => 'boolean',
+            'sale_prices' => 'nullable|array',
+            'sale_prices.*.sales_type_id' => 'required|exists:sales_types,id',
+            'sale_prices.*.price' => 'required|numeric|min:0'
         ]);
 
         if ($request->hasFile('image')) {
@@ -149,6 +158,14 @@ class ProductController extends Controller
         }
 
         $product->save();
+
+        if ($request->has('sale_prices')) {
+            $syncData = [];
+            foreach ($request->sale_prices as $item) {
+                $syncData[$item['sales_type_id']] = ['price' => $item['price']];
+            }
+            $product->salePrices()->sync($syncData);
+        }
         
         \App\Helpers\LogHelper::log('product.updated', "Updated product {$product->name}", $product);
 
@@ -158,9 +175,8 @@ class ProductController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $id)
+    public function destroy(Product $product)
     {
-        $product = Product::findOrFail($id);
         
         // Optional: Delete image from storage
         /*
@@ -181,10 +197,9 @@ class ProductController extends Controller
     /**
      * Sync modifiers for a product.
      */
-    public function syncModifiers(Request $request, string $id)
+    public function syncModifiers(Request $request, Product $product)
     {
         \Illuminate\Support\Facades\Log::info('SyncModifiers Payload:', $request->all());
-        $product = Product::findOrFail($id);
         
         if ($request->has('modifier_ids') && is_array($request->modifier_ids) && !empty($request->modifier_ids) && !is_array($request->modifier_ids[0] ?? [])) {
              // Old format simple array of IDs
@@ -222,5 +237,27 @@ class ProductController extends Controller
             'message' => 'Modifiers updated successfully',
             'modifiers' => $product->load('modifiers.options')->modifiers
         ]);
+    }
+
+    /**
+     * Delete image for a product.
+     */
+    public function deleteImage(Product $product)
+    {
+
+        if ($product->image_url) {
+            $oldPath = str_replace('/storage/', '', $product->image_url);
+            if (Storage::disk('public')->exists($oldPath)) {
+                Storage::disk('public')->delete($oldPath);
+            }
+            $product->image_url = null;
+            $product->save();
+
+            \App\Helpers\LogHelper::log('product.image_deleted', "Deleted image for product {$product->name}", $product);
+
+            return $this->successResponse($product, 'Image deleted successfully');
+        }
+
+        return response()->json(['message' => 'No image to delete'], 404);
     }
 }

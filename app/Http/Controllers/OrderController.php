@@ -35,8 +35,10 @@ class OrderController extends Controller
                       ->orWhere(function($q) {
                           $q->where('payment_status', 'paid')
                             ->where('order_status', 'processing')
-                            ->whereIn('order_type', ['pickup_app', 'pickup']); // Add other online types if any
-                      });
+                            ->whereNull('user_id'); // All public app orders
+                      })
+                      // Case 3: Customer confirmed manual payment (QRIS/Bank Transfer)
+                      ->orWhere('payment_status', 'pending_confirmation');
             })
             ->count();
             
@@ -55,8 +57,10 @@ class OrderController extends Controller
                       ->orWhere(function($q) {
                           $q->where('payment_status', 'paid')
                             ->where('order_status', 'processing')
-                            ->whereIn('order_type', ['pickup_app', 'pickup']);
-                      });
+                            ->whereNull('user_id');
+                      })
+                      // Include manual payment confirmations from customers
+                      ->orWhere('payment_status', 'pending_confirmation');
             })
             ->orderBy('created_at', 'desc')
             ->get();
@@ -72,39 +76,7 @@ class OrderController extends Controller
         $query = Order::with(['customer', 'items.product'])
             ->orderBy('created_at', 'desc');
 
-        // Search by Order Number or Customer Name
-        if ($request->has('search')) {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('order_number', 'like', "%{$search}%")
-                  ->orWhereHas('customer', function ($q2) use ($search) {
-                      $q2->where('name', 'like', "%{$search}%");
-                  });
-            });
-        }
-
-        // Filter by Date
-        if ($request->has('start_date') && $request->has('end_date')) {
-            $query->whereBetween('created_at', [
-                $request->start_date, 
-                Carbon::parse($request->end_date)->endOfDay()
-            ]);
-        }
-
-        // Filter by Status (legacy param)
-        if ($request->has('status') && $request->status !== 'all') {
-            $query->where('payment_status', $request->status);
-        }
-
-        // Filter by payment_status (new param)
-        if ($request->has('payment_status') && $request->payment_status !== 'all') {
-            $query->where('payment_status', $request->payment_status);
-        }
-        
-        // Filter by order_status (for active/processing vs completed)
-        if ($request->has('order_status') && $request->order_status !== 'all') {
-             $query->where('order_status', $request->order_status);
-        }
+        $query = $this->applyFilters($query, $request);
 
         // Clone query for stats to avoid modifying the base query for pagination
         $statsQuery = clone $query;
@@ -121,11 +93,130 @@ class OrderController extends Controller
     }
 
     /**
+     * Export orders to CSV.
+     */
+    public function export(Request $request)
+    {
+        $query = Order::with(['customer', 'items.product', 'user', 'salesType'])
+            ->orderBy('created_at', 'desc');
+
+        $query = $this->applyFilters($query, $request);
+        $orders = $query->get();
+
+        $filename = "transaction_detail_" . now()->format('Y-m-d_His') . ".csv";
+        $headers = [
+            "Content-type"        => "text/csv",
+            "Content-Disposition" => "attachment; filename=$filename",
+            "Pragma"              => "no-cache",
+            "Cache-Control"       => "must-revalidate, post-check=0, pre-check=0",
+            "Expires"             => "0"
+        ];
+
+        $columns = [
+            'Order #', 'Date', 'Customer', 'Order Type', 'Sales Type', 'Item name', 'Qty', 
+            'Unit Price', 'Total Item', 'Subtotal Order', 'Tax', 'Discount', 'Grand Total', 'Status', 'Cashier'
+        ];
+
+        $callback = function() use($orders, $columns) {
+            $file = fopen('php://output', 'w');
+            fputcsv($file, $columns);
+
+            foreach ($orders as $order) {
+                foreach ($order->items as $item) {
+                    $row = [
+                        $order->order_number,
+                        $order->created_at->format('Y-m-d H:i:s'),
+                        $order->customer_name ?: ($order->customer ? $order->customer->name : 'Guest'),
+                        ucwords(str_replace('_', ' ', $order->order_type)),
+                        $order->salesType ? $order->salesType->name : '-',
+                        $item->product_name,
+                        $item->quantity,
+                        $item->unit_price,
+                        $item->total_price,
+                        $order->subtotal,
+                        $order->tax_amount,
+                        $order->discount_amount,
+                        $order->grand_total,
+                        ucfirst($order->payment_status),
+                        $order->user ? $order->user->name : 'System'
+                    ];
+                    fputcsv($file, $row);
+                }
+            }
+
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
+
+    /**
+     * Shared filter logic for index and export.
+     */
+    private function applyFilters($query, Request $request)
+    {
+        // Search by Order Number or Customer Name
+        if ($request->has('search') && $request->search != '') {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('order_number', 'like', "%{$search}%")
+                  ->orWhereHas('customer', function ($q2) use ($search) {
+                      $q2->where('name', 'like', "%{$search}%");
+                  });
+            });
+        }
+
+        // Filter by Date Range
+        if ($request->has('start_date') && $request->has('end_date') && $request->start_date != '' && $request->end_date != '') {
+            $query->whereBetween('created_at', [
+                Carbon::parse($request->start_date)->startOfDay(), 
+                Carbon::parse($request->end_date)->endOfDay()
+            ]);
+        } elseif ($request->has('period')) {
+            switch ($request->period) {
+                case 'today':
+                    $query->whereDate('created_at', Carbon::today());
+                    break;
+                case 'week':
+                    $query->whereBetween('created_at', [Carbon::now()->startOfWeek(), Carbon::now()->endOfWeek()]);
+                    break;
+                case 'month':
+                    $query->whereMonth('created_at', Carbon::now()->month)
+                          ->whereYear('created_at', Carbon::now()->year);
+                    break;
+                case 'year':
+                    $query->whereYear('created_at', Carbon::now()->year);
+                    break;
+            }
+        }
+
+        // Filter by Status
+        if ($request->filled('status') && $request->status !== 'all') {
+            $statusMap = [
+                'completed' => 'paid',
+                'cancelled' => 'refunded',
+            ];
+            $statusValue = $statusMap[$request->status] ?? $request->status;
+            $query->where('payment_status', $statusValue);
+        }
+
+        if ($request->filled('payment_status') && $request->payment_status !== 'all') {
+            $query->where('payment_status', $request->payment_status);
+        }
+        
+        if ($request->filled('order_status') && $request->order_status !== 'all') {
+             $query->where('order_status', $request->order_status);
+        }
+
+        return $query;
+    }
+
+    /**
      * Show order details.
      */
     public function show(Order $order)
     {
-        $order->load(['items.product', 'customer', 'user']);
+        $order->load(['items.product', 'customer', 'user', 'payments']);
         return response()->json($order);
     }
 
@@ -137,8 +228,14 @@ class OrderController extends Controller
             'customer_name' => 'nullable|string|max:255',
             'customer_phone' => 'nullable|string|max:20', 
             'order_type' => 'required|in:dine_in,takeaway,pickup_app,pickup', // Added pickup
-            'payment_method' => 'required|string',
-            'payment_status' => 'required|in:pending,paid,failed',
+            'amount_paid' => 'nullable|numeric|min:0',
+            'payment_method' => 'required|string', // Keep for backward compatibility
+            'payment_status' => 'required|in:pending,paid,failed,pending_confirmation',
+            'payments' => 'nullable|array',
+            'payments.*.method' => 'required_with:payments|string',
+            'payments.*.amount' => 'required_with:payments|numeric|min:0',
+            'payments.*.status' => 'nullable|string|in:pending,paid,failed,refunded',
+            'payments.*.reference_id' => 'nullable|string',
             'offline_id' => 'nullable|string|unique:orders,offline_id',
             'items' => 'required|array|min:1',
             'items.*.product_id' => 'required|exists:products,id',
@@ -148,6 +245,7 @@ class OrderController extends Controller
             'note' => 'nullable|string',
             'discount_id' => 'nullable|exists:discounts,id',
             'customer_voucher_id' => 'nullable|exists:customer_vouchers,id',
+            'sales_type_id' => 'nullable|exists:sales_types,id',
         ]);
 
         try {
@@ -201,8 +299,12 @@ class OrderController extends Controller
                     'customer_name' => $validated['customer_name'] ?? ($validated['customer_id'] ? Customer::find($validated['customer_id'])->name : 'Guest'),
                     'customer_phone' => $validated['customer_phone'] ?? ($validated['customer_id'] ? Customer::find($validated['customer_id'])->phone : null),
                     'order_type' => $validated['order_type'],
+                    'sales_type_id' => $validated['sales_type_id'] ?? \App\Models\SalesType::where('slug', $validated['order_type'])
+                        ->orWhere('slug', str_replace('_app', '', $validated['order_type']))
+                        ->value('id'),
                     'payment_method' => $validated['payment_method'],
                     'payment_status' => $validated['payment_status'],
+                    'amount_paid' => $validated['amount_paid'] ?? 0,
                     'offline_id' => $validated['offline_id'] ?? null,
                     'order_status' => $validated['payment_status'] === 'paid' ? 'processing' : 'pending',
                     'synced_at' => now(), 
@@ -232,6 +334,18 @@ class OrderController extends Controller
                             // Deduct Stock
                             $ingredient->decrement('current_stock', $totalQtyNeeded);
                             
+                            // Log Stock Out
+                            \App\Models\InventoryTransaction::create([
+                                'ingredient_id' => $ingredient->id,
+                                'type' => 'out',
+                                'quantity' => $totalQtyNeeded,
+                                'unit_cost' => $ingredient->cost_per_unit,
+                                'total_cost' => $ingredient->cost_per_unit * $totalQtyNeeded,
+                                'reference' => 'ORDER_PLACED',
+                                'notes' => 'Order ' . $order->order_number,
+                                'user_id' => $userId ?? null,
+                            ]);
+                            
                             // HPP Calculation
                             $unitCost += $ingredient->cost_per_unit * $qtyNeededPerUnit;
                         }
@@ -241,14 +355,20 @@ class OrderController extends Controller
                             throw new \Exception("Insufficient stock for product: {$product->name}. Available: {$product->current_stock}");
                         }
                         $product->decrement('current_stock', $itemData['quantity']);
-                        // Helper for HPP not defined for direct products yet? usually it's cost_price column, assuming 0 for now or add column later.
+                        // Note: Direct product stock transaction logging not required yet per plan, focusing on ingredients.
                     }
 
                     // Calculate Unit Price including Modifiers
-                    $unitPrice = $product->price;
+                    $priceSlug = str_replace('_app', '', $validated['order_type']);
+                    $unitPrice = $product->getPriceForSalesType($priceSlug);
                     if (!empty($itemData['modifiers']) && is_array($itemData['modifiers'])) {
                         foreach ($itemData['modifiers'] as $mod) {
-                            $unitPrice += ($mod['price'] ?? 0);
+                            if (!empty($mod['option_id'])) {
+                                $option = \App\Models\ModifierOption::find($mod['option_id']);
+                                if ($option) {
+                                    $unitPrice += $option->getPriceForSalesType($priceSlug);
+                                }
+                            }
                         }
                     }
 
@@ -325,17 +445,51 @@ class OrderController extends Controller
                 $taxAmount = $taxable * ($taxRate / 100);
                 
                 $grandTotal = max(0, $subtotal + $taxAmount - $discountAmount);
+                $amountPaid = $validated['amount_paid'] ?? $grandTotal;
+                $change = max(0, $amountPaid - $grandTotal);
                 
                 $order->update([
                     'subtotal' => $subtotal,
                     'tax_amount' => $taxAmount,
                     'discount_amount' => $discountAmount,
                     'grand_total' => $grandTotal,
+                    'amount_paid' => $amountPaid,
+                    'change' => $change,
                 ]);
+
+                // 4.5 Save Order Payments
+                if (!empty($validated['payments']) && is_array($validated['payments'])) {
+                    $orderPayments = [];
+                    foreach ($validated['payments'] as $payment) {
+                        $orderPayments[] = new \App\Models\OrderPayment([
+                            'payment_method' => $payment['method'],
+                            'amount' => $payment['amount'],
+                            'status' => $payment['status'] ?? 'paid',
+                            'reference_id' => $payment['reference_id'] ?? null,
+                        ]);
+                    }
+                    $order->payments()->saveMany($orderPayments);
+                } else {
+                    // Fallback for single payment method backward compatibility
+                    if ($order->payment_status === 'paid' || $order->payment_status === 'pending') {
+                        $order->payments()->create([
+                            'payment_method' => $validated['payment_method'],
+                            'amount' => $grandTotal, // Default to grand total
+                            'status' => $validated['payment_status'] === 'paid' ? 'paid' : 'pending',
+                        ]);
+                    }
+                }
 
                 // 5. Member Points Logic
                 if ($order->customer_id && $order->payment_status === 'paid') {
                     Customer::where('id', $order->customer_id)->increment('points_balance', 2);
+                }
+
+                // 6. Broadcast OrderCreated event for real-time notifications
+                try {
+                    event(new \App\Events\OrderCreated($order->load('items')));
+                } catch (\Throwable $e) {
+                    \Illuminate\Support\Facades\Log::warning('Broadcasting OrderCreated failed: ' . $e->getMessage());
                 }
 
                 return response()->json([
@@ -384,6 +538,11 @@ class OrderController extends Controller
             'order_type' => 'required|in:dine_in,takeaway,pickup_app',
             'payment_method' => 'required|string',
             'payment_status' => 'required|in:pending,paid,failed',
+            'payments' => 'nullable|array',
+            'payments.*.method' => 'required_with:payments|string',
+            'payments.*.amount' => 'required_with:payments|numeric|min:0',
+            'payments.*.status' => 'nullable|string|in:pending,paid,failed,refunded',
+            'payments.*.reference_id' => 'nullable|string',
             'items' => 'required|array|min:1',
             'items.*.product_id' => 'required|exists:products,id',
             'items.*.quantity' => 'required|integer|min:1',
@@ -399,12 +558,25 @@ class OrderController extends Controller
                     foreach ($product->ingredients as $ingredient) {
                         $qtyToRestore = $ingredient->pivot->quantity_needed * $item->quantity;
                         Ingredient::where('id', $ingredient->id)->increment('current_stock', $qtyToRestore);
+                        
+                        // Log Stock In (Restore)
+                        \App\Models\InventoryTransaction::create([
+                            'ingredient_id' => $ingredient->id,
+                            'type' => 'in',
+                            'quantity' => $qtyToRestore,
+                            'unit_cost' => $ingredient->cost_per_unit,
+                            'total_cost' => $ingredient->cost_per_unit * $qtyToRestore,
+                            'reference' => 'ORDER_UPDATED_RESTORE',
+                            'notes' => 'Restored for Order ' . $order->order_number . ' update',
+                            'user_id' => $request->user()->id,
+                        ]);
                     }
                 }
             }
             
-            // 2. Delete Old Items
+            // 2. Delete Old Items and Old Payments
             $order->items()->delete();
+            $order->payments()->delete();
 
             // 3. Process New Items & Deduct Stock
             $subtotal = 0;
@@ -427,17 +599,44 @@ class OrderController extends Controller
                     }
                     
                     $ingredient->decrement('current_stock', $totalQtyNeeded);
+                    
+                    // Log Stock Out (New Items)
+                    \App\Models\InventoryTransaction::create([
+                        'ingredient_id' => $ingredient->id,
+                        'type' => 'out',
+                        'quantity' => $totalQtyNeeded,
+                        'unit_cost' => $ingredient->cost_per_unit,
+                        'total_cost' => $ingredient->cost_per_unit * $totalQtyNeeded,
+                        'reference' => 'ORDER_UPDATED_DEDUCT',
+                        'notes' => 'Deducted for Order ' . $order->order_number . ' update',
+                        'user_id' => $request->user()->id,
+                    ]);
+                    
                     $unitCost += $ingredient->cost_per_unit * $qtyNeededPerUnit;
                 }
 
-                $totalPrice = $product->price * $itemData['quantity'];
+                $priceSlug = str_replace('_app', '', $validated['order_type']);
+                $unitPrice = $product->getPriceForSalesType($priceSlug);
+                
+                if (!empty($itemData['modifiers']) && is_array($itemData['modifiers'])) {
+                    foreach ($itemData['modifiers'] as $mod) {
+                        if (!empty($mod['option_id'])) {
+                            $option = \App\Models\ModifierOption::find($mod['option_id']);
+                            if ($option) {
+                                $unitPrice += $option->getPriceForSalesType($priceSlug);
+                            }
+                        }
+                    }
+                }
+
+                $totalPrice = $unitPrice * $itemData['quantity'];
                 $subtotal += $totalPrice;
 
                 $orderItems[] = new OrderItem([
                     'product_id' => $product->id,
                     'product_name' => $product->name,
                     'quantity' => $itemData['quantity'],
-                    'unit_price' => $product->price,
+                    'unit_price' => $unitPrice,
                     'unit_cost' => $unitCost,
                     'total_price' => $totalPrice,
                     'note' => $itemData['note'] ?? null,
@@ -461,6 +660,9 @@ class OrderController extends Controller
                 'customer_id' => $validated['customer_id'] ?? null,
                 'customer_name' => $validated['customer_name'] ?? ($validated['customer_id'] ? Customer::find($validated['customer_id'])->name : 'Guest'),
                 'order_type' => $validated['order_type'],
+                'sales_type_id' => $request->sales_type_id ?? \App\Models\SalesType::where('slug', $validated['order_type'])
+                    ->orWhere('slug', str_replace('_app', '', $validated['order_type']))
+                    ->value('id'),
                 'payment_method' => $validated['payment_method'],
                 'payment_status' => $validated['payment_status'],
                 'order_status' => $validated['payment_status'] === 'paid' ? 'completed' : 'pending',
@@ -471,6 +673,29 @@ class OrderController extends Controller
                 'synced_at' => now(),
             ]);
 
+            // Save Order Payments
+            if (!empty($validated['payments']) && is_array($validated['payments'])) {
+                $orderPayments = [];
+                foreach ($validated['payments'] as $payment) {
+                    $orderPayments[] = new \App\Models\OrderPayment([
+                        'payment_method' => $payment['method'],
+                        'amount' => $payment['amount'],
+                        'status' => $payment['status'] ?? 'paid',
+                        'reference_id' => $payment['reference_id'] ?? null,
+                    ]);
+                }
+                $order->payments()->saveMany($orderPayments);
+            } else {
+                // Fallback for single payment method backward compatibility
+                if ($order->payment_status === 'paid' || $order->payment_status === 'pending') {
+                    $order->payments()->create([
+                        'payment_method' => $validated['payment_method'],
+                        'amount' => $grandTotal, // Default to grand total
+                        'status' => $validated['payment_status'] === 'paid' ? 'paid' : 'pending',
+                    ]);
+                }
+            }
+
             // 5. Member Points Logic
             if ($order->customer_id && $order->payment_status === 'paid') {
                  // 2 Points per Transaction
@@ -479,7 +704,7 @@ class OrderController extends Controller
 
             return response()->json([
                 'message' => 'Order updated successfully',
-                'data' => $order->load('items'),
+                'data' => $order->load(['items', 'payments']),
             ]);
         });
     }
@@ -491,7 +716,14 @@ class OrderController extends Controller
      */
     public function process(Order $order)
     {
-        $order->update(['order_status' => 'completed']);
+        $updateData = ['order_status' => 'completed'];
+        
+        // If customer confirmed manual payment, mark as paid upon cashier verification
+        if ($order->payment_status === 'pending_confirmation') {
+            $updateData['payment_status'] = 'paid';
+        }
+        
+        $order->update($updateData);
         return response()->json([
             'message' => 'Order marked as processed',
             'data' => $order
@@ -530,6 +762,18 @@ class OrderController extends Controller
                         $qtyToRestore = $ingredient->pivot->quantity_needed * $item->quantity;
                         Ingredient::where('id', $ingredient->id)
                             ->increment('current_stock', $qtyToRestore);
+                            
+                        // Log Stock In (Restore due to Cancel)
+                        \App\Models\InventoryTransaction::create([
+                            'ingredient_id' => $ingredient->id,
+                            'type' => 'in',
+                            'quantity' => $qtyToRestore,
+                            'unit_cost' => $ingredient->cost_per_unit,
+                            'total_cost' => $ingredient->cost_per_unit * $qtyToRestore,
+                            'reference' => 'ORDER_CANCELLED',
+                            'notes' => 'Order ' . $order->order_number . ' cancelled by ' . $manager->name,
+                            'user_id' => $manager->id,
+                        ]);
                     }
                 }
             }
@@ -584,6 +828,18 @@ class OrderController extends Controller
                         $qtyToRestore = $ingredient->pivot->quantity_needed * $item->quantity;
                         Ingredient::where('id', $ingredient->id)
                             ->increment('current_stock', $qtyToRestore);
+                            
+                        // Log Stock In (Restore due to Refund)
+                        \App\Models\InventoryTransaction::create([
+                            'ingredient_id' => $ingredient->id,
+                            'type' => 'in',
+                            'quantity' => $qtyToRestore,
+                            'unit_cost' => $ingredient->cost_per_unit,
+                            'total_cost' => $ingredient->cost_per_unit * $qtyToRestore,
+                            'reference' => 'ORDER_REFUNDED',
+                            'notes' => 'Order ' . $order->order_number . ' refunded by ' . $manager->name,
+                            'user_id' => $manager->id,
+                        ]);
                     }
                 }
             }
@@ -681,7 +937,7 @@ class OrderController extends Controller
         
         if ($cached) {
             return response()->json([
-                'valid' => (bool) $cached->is_valid,
+                'valid' => (bool) ($cached->is_valid ?? false),
                 'formatted' => $phone,
                 'cached' => true // Debug info
             ]);
@@ -738,7 +994,7 @@ class OrderController extends Controller
         $taxRate = $settings['tax_rate'] ?? 11;
 
         // Formats
-        $date = Carbon::parse($order->created_at)->locale('id')->isoFormat('dddd, D MMMM Y, HH:mm');
+        $date = \Carbon\Carbon::parse($order->created_at)->locale('id')->isoFormat('dddd, D MMMM Y, HH:mm');
         $shortOrder = Str::afterLast($order->order_number, '-'); // e.g. 0001
         if (empty($shortOrder)) $shortOrder = substr((string)$order->id, -4);
         
@@ -858,5 +1114,78 @@ class OrderController extends Controller
         \App\Jobs\SendWhatsAppNotification::dispatchAfterResponse($phone, $message);
 
         return response()->json(['message' => 'Receipt sent successfully']);
+    }
+
+    /**
+     * Customer confirms manual payment (QRIS / Bank Transfer).
+     * Sets order to 'pending_confirmation' and notifies the store's WhatsApp group.
+     */
+    public function confirmManualPayment(Request $request, Order $order)
+    {
+        // Only allow confirmation for pending orders
+        if ($order->payment_status !== 'pending') {
+            return response()->json([
+                'message' => 'Pesanan ini sudah dikonfirmasi atau tidak dalam status pending.'
+            ], 422);
+        }
+
+        $request->validate([
+            'proof_image' => 'required|image|max:5120', // 5MB max
+            'customer_name' => 'required|string|max:255',
+            'whatsapp_number' => 'required|string|max:20',
+            'amount_paid' => 'required|numeric|min:0',
+        ]);
+
+        $receiptUrl = null;
+        if ($request->hasFile('proof_image')) {
+            $path = $request->file('proof_image')->store('receipts', 'public');
+            $receiptUrl = env('APP_URL') . '/storage/' . $path;
+        }
+
+        // Update order with new details
+        $order->update([
+            'payment_status' => 'pending_confirmation',
+            'order_status' => 'processing',
+            'payment_receipt_url' => $receiptUrl,
+            'customer_name' => $request->customer_name,
+            'customer_phone' => $request->whatsapp_number,
+            'amount_paid' => $request->amount_paid,
+        ]);
+
+        // Build WhatsApp notification message (Caption)
+        $methodLabel = $order->payment_method === 'qris' ? 'QRIS' : 'Bank Transfer BCA';
+        $grandTotal = number_format($order->grand_total, 0, ',', '.');
+        $amountPaid = number_format($request->amount_paid, 0, ',', '.');
+
+        $items = $order->items->map(function ($item) {
+            return "• {$item->quantity}x {$item->product_name}";
+        })->implode("\n");
+
+        $message = "🔔 *KONFIRMASI PEMBAYARAN MASUK*\n\n"
+            . "📋 *Order:* {$order->order_number}\n"
+            . "👤 *Pelanggan:* {$request->customer_name}\n"
+            . "📞 *WA:* {$request->whatsapp_number}\n"
+            . "💳 *Metode:* {$methodLabel}\n"
+            . "💰 *Total Tagihan:* Rp {$grandTotal}\n"
+            . "✅ *Jml Ditransfer:* Rp {$amountPaid}\n\n"
+            . "🛒 *Pesanan:*\n{$items}\n\n"
+            . "⏰ " . now()->format('d M Y H:i') . "\n"
+            . "📌 Silakan cek bukti transfer dan verifikasi pembayaran dari customer.";
+
+        // Send to WhatsApp group
+        $groupId = env('ONESENDER_GROUP_ID');
+        if ($groupId && $receiptUrl) {
+            try {
+                $service = new \App\Services\OneSenderService();
+                $service->sendGroupImage($groupId, $receiptUrl, $message);
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error("Failed to send WA group notification: " . $e->getMessage());
+            }
+        }
+
+        return response()->json([
+            'message' => 'Konfirmasi pembayaran berhasil dikirim. Mohon tunggu verifikasi dari kasir.',
+            'order' => $order->fresh()
+        ]);
     }
 }

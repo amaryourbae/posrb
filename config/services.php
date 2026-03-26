@@ -18,6 +18,16 @@ return [
         'key' => env('POSTMARK_API_KEY'),
     ],
 
+    'google' => [
+        'client_id' => env('GOOGLE_CLIENT_ID'),
+        'redirect' => env('GOOGLE_REDIRECT_URI'),
+    ],
+
+    'apple' => [
+        'client_id' => env('APPLE_CLIENT_ID'),
+        'redirect' => env('APPLE_REDIRECT_URI'),
+    ],
+
     'resend' => [
         'key' => env('RESEND_API_KEY'),
     ],
